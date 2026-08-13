@@ -1,5 +1,5 @@
 name: suarawarga_ai
-description: A new Flutter project.
+description: SuaraWarga AI — Voice-first government services assistant for Malaysian senior citizens.
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -51,8 +51,4 @@ flutter:
   assets:
     - assets/images/
     - assets/fonts/
-  
-  fonts:
-    - family: YourFont
-      fonts:
-        - asset: assets/fonts/your_font.ttf
+    - assets/icons/
