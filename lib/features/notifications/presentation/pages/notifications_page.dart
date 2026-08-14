@@ -4,8 +4,15 @@ import '../../../../core/services/app_state.dart';
 import '../../../../shared/widgets/custom_header.dart';
 import '../../../../shared/widgets/ai_tag.dart';
 
-class NotificationsPage extends StatelessWidget {
+class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
+
+  @override
+  State<NotificationsPage> createState() => _NotificationsPageState();
+}
+
+class _NotificationsPageState extends State<NotificationsPage> {
+  String _activeFilter = 'notifAll';
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +28,7 @@ class NotificationsPage extends StatelessWidget {
         'timeKey': 'notifTime2h',
         'isNew': true,
         'urgent': true,
+        'type': 'service',
       },
       {
         'icon': Icons.route_rounded,
@@ -31,6 +39,7 @@ class NotificationsPage extends StatelessWidget {
         'timeKey': 'notifTime6h',
         'isNew': true,
         'urgent': false,
+        'type': 'community',
       },
       {
         'icon': Icons.directions_bus_rounded,
@@ -41,6 +50,7 @@ class NotificationsPage extends StatelessWidget {
         'timeKey': 'notifTime1d',
         'isNew': false,
         'urgent': false,
+        'type': 'service',
       },
       {
         'icon': Icons.groups_rounded,
@@ -51,6 +61,7 @@ class NotificationsPage extends StatelessWidget {
         'timeKey': 'notifTime2d',
         'isNew': false,
         'urgent': false,
+        'type': 'community',
       },
       {
         'icon': Icons.star_rounded,
@@ -61,10 +72,19 @@ class NotificationsPage extends StatelessWidget {
         'timeKey': 'notifTime3d',
         'isNew': false,
         'urgent': false,
+        'type': 'service',
       },
     ];
 
     final newCount = notifications.where((n) => n['isNew'] as bool).length;
+    
+    final filteredNotifications = notifications.where((n) {
+      if (_activeFilter == 'notifAll') return true;
+      if (_activeFilter == 'notifUrgent') return n['urgent'] == true;
+      if (_activeFilter == 'notifServices') return n['type'] == 'service';
+      if (_activeFilter == 'notifCommunityTab') return n['type'] == 'community';
+      return true;
+    }).toList();
 
     return Scaffold(
       body: Column(
@@ -82,19 +102,19 @@ class NotificationsPage extends StatelessWidget {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _buildFilterChip(appState.translate('notifAll'), true),
+                      _buildFilterChip(appState.translate('notifAll'), 'notifAll', appState),
                       const SizedBox(width: 8),
-                      _buildFilterChip(appState.translate('notifUrgent'), false, urgent: true),
+                      _buildFilterChip(appState.translate('notifUrgent'), 'notifUrgent', appState, urgent: true),
                       const SizedBox(width: 8),
-                      _buildFilterChip(appState.translate('notifServices'), false),
+                      _buildFilterChip(appState.translate('notifServices'), 'notifServices', appState),
                       const SizedBox(width: 8),
-                      _buildFilterChip(appState.translate('notifCommunityTab'), false),
+                      _buildFilterChip(appState.translate('notifCommunityTab'), 'notifCommunityTab', appState),
                     ],
                   ),
                 ),
                 const SizedBox(height: 16),
                 // Notification cards
-                ...notifications.map((n) {
+                ...filteredNotifications.map((n) {
                   final isNew = n['isNew'] as bool;
                   final isUrgent = n['urgent'] as bool;
                   return Container(
@@ -250,35 +270,43 @@ class NotificationsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildFilterChip(String label, bool isActive, {bool urgent = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: urgent
-            ? const Color(0xFFFEF2F2)
-            : isActive
-                ? const Color(0xFF2563EB)
-                : Colors.white,
-        borderRadius: BorderRadius.circular(99),
-        border: Border.all(
+  Widget _buildFilterChip(String label, String filterKey, AppState appState, {bool urgent = false}) {
+    final isActive = _activeFilter == filterKey;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _activeFilter = filterKey;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
           color: urgent
-              ? const Color(0xFFFCA5A5)
+              ? const Color(0xFFFEF2F2)
               : isActive
                   ? const Color(0xFF2563EB)
-                  : const Color(0xFFE2E8F0),
-          width: 1.5,
+                  : Colors.white,
+          borderRadius: BorderRadius.circular(99),
+          border: Border.all(
+            color: urgent
+                ? const Color(0xFFFCA5A5)
+                : isActive
+                    ? const Color(0xFF2563EB)
+                    : const Color(0xFFE2E8F0),
+            width: 1.5,
+          ),
         ),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.bold,
-          color: urgent
-              ? const Color(0xFFEF4444)
-              : isActive
-                  ? Colors.white
-                  : const Color(0xFF64748B),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: urgent
+                ? const Color(0xFFEF4444)
+                : isActive
+                    ? Colors.white
+                    : const Color(0xFF64748B),
+          ),
         ),
       ),
     );
