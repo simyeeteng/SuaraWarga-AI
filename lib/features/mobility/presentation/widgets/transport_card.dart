@@ -66,7 +66,7 @@ class TransportCard extends StatelessWidget {
                         'Bus $busLine',
                         style: const TextStyle(
                           fontSize: 18,
-                          fontWeight: FontWeight.black,
+                          fontWeight: FontWeight.w900,
                           color: Color(0xFF0F172A),
                         ),
                       ),

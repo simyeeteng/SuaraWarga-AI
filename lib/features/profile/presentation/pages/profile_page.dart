@@ -50,7 +50,7 @@ class _ProfilePageState extends State<ProfilePage> {
               const SizedBox(height: 16),
               Text(
                 appState.translate('signOutTitle'),
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.black, color: Color(0xFF0F172A)),
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
               ),
               const SizedBox(height: 8),
               Text(
@@ -178,7 +178,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
-                                fontWeight: FontWeight.black,
+                                fontWeight: FontWeight.w900,
                               ),
                             ),
                             Text(
@@ -533,7 +533,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                       '${rate}x',
                                       style: TextStyle(
                                         fontSize: 13,
-                                        fontWeight: FontWeight.w950,
+                                        fontWeight: FontWeight.w900,
                                         color: isSel ? Colors.white : const Color(0xFF475569),
                                       ),
                                     ),
@@ -616,7 +616,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 children: [
                                   Text(
                                     user.emergencyContact!.name,
-                                    style: const TextStyle(fontWeight: FontWeight.black, fontSize: 18, color: Color(0xFF1E293B)),
+                                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF1E293B)),
                                   ),
                                   Text(
                                     user.emergencyContact!.phone,

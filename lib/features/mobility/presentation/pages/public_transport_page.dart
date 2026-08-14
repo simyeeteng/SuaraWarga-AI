@@ -213,11 +213,12 @@ class _PublicTransportPageState extends State<PublicTransportPage> {
                             const SizedBox(height: 16),
                             ...steps.map((item) {
                               final bool isCurrent = item['status'] == 'current';
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 16),
+                              return Opacity(
                                 opacity: isCurrent ? 1.0 : 0.5,
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 16),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Container(
                                       width: 40,
@@ -248,7 +249,7 @@ class _PublicTransportPageState extends State<PublicTransportPage> {
                                               appState.translate('inProgressRoute'),
                                               style: const TextStyle(
                                                 fontSize: 12,
-                                                fontWeight: FontWeight.w950,
+                                                fontWeight: FontWeight.w900,
                                                 color: Color(0xFF2563EB),
                                               ),
                                             )
@@ -258,7 +259,7 @@ class _PublicTransportPageState extends State<PublicTransportPage> {
                                     )
                                   ],
                                 ),
-                              );
+                              ));
                             }).toList(),
                           ],
                         ),

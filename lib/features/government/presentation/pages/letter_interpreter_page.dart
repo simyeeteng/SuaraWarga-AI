@@ -301,11 +301,11 @@ class _LetterInterpreterPageState extends State<LetterInterpreterPage> {
                               onPressed: () {
                                 appState.setLetterInterpreterState('upload');
                               },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: const Color(0xFF2563EB),
-                                borderSide: const BorderSide(color: Color(0xFFBFDBFE), width: 2),
-                              ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: const Color(0xFF2563EB),
+                                  side: const BorderSide(color: Color(0xFFBFDBFE), width: 2),
+                                ),
                               child: Text(appState.translate('scanAnotherLetter')),
                             ),
                             const SizedBox(height: 24),

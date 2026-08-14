@@ -350,7 +350,7 @@ class _SmartMobilityPageState extends State<SmartMobilityPage> {
                                 appState.translate('destinationLabel').toUpperCase(),
                                 style: const TextStyle(
                                   fontSize: 10,
-                                  fontWeight: FontWeight.w950,
+                                  fontWeight: FontWeight.w900,
                                   color: Color(0xFF94A3B8),
                                   letterSpacing: 0.5,
                                 ),
@@ -359,7 +359,7 @@ class _SmartMobilityPageState extends State<SmartMobilityPage> {
                                 activeDest,
                                 style: const TextStyle(
                                   fontSize: 18,
-                                  fontWeight: FontWeight.black,
+                                  fontWeight: FontWeight.w900,
                                   color: Color(0xFF0F172A),
                                   height: 1.2,
                                 ),
@@ -430,8 +430,8 @@ class _SmartMobilityPageState extends State<SmartMobilityPage> {
                   const SizedBox(height: 16),
                   // AI recommendation
                   Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
                         colors: [Color(0xFF059669), Color(0xFF047857)], // green gradient
                       ),
                       borderRadius: BorderRadius.circular(24),
@@ -558,7 +558,7 @@ class _SmartMobilityPageState extends State<SmartMobilityPage> {
                                           '38',
                                           style: TextStyle(
                                             fontSize: 22,
-                                            fontWeight: FontWeight.black,
+                                            fontWeight: FontWeight.w900,
                                             color: Colors.amber[700]!,
                                             height: 1.0,
                                           ),

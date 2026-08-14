@@ -153,8 +153,8 @@ class _WalkabilityPageState extends State<WalkabilityPage> {
                 ],
                 // Community contributions
                 Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
                       colors: [Color(0xFF059669), Color(0xFF047857)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -242,7 +242,7 @@ class _WalkabilityPageState extends State<WalkabilityPage> {
         children: [
           Text(
             value,
-            style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w950),
+            style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 2),
           Text(

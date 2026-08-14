@@ -146,7 +146,7 @@ class _DocumentCheckerPageState extends State<DocumentCheckerPage> {
                                     '$readyCount / ${docs.length} ${appState.translate('docReadyLabel')}',
                                     style: TextStyle(
                                       fontSize: 22,
-                                      fontWeight: FontWeight.black,
+                                      fontWeight: FontWeight.w900,
                                       color: allReady ? const Color(0xFF065F46) : const Color(0xFF92400E),
                                     ),
                                   ),

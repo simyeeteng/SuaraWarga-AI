@@ -350,7 +350,7 @@ class _ListeningPageState extends State<ListeningPage> with SingleTickerProvider
                                         intent.serviceDesc,
                                         style: const TextStyle(
                                           fontSize: 12,
-                                          color: Colors.white50,
+                                          color: Colors.white54,
                                         ),
                                       ),
                                     ],

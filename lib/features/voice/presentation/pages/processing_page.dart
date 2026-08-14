@@ -107,14 +107,13 @@ class _ProcessingPageState extends State<ProcessingPage> with SingleTickerProvid
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white.withOpacity(0.2), width: 4),
-                        borderDelta: const Border(top: BorderSide(color: Colors.white, width: 4)),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     appState.translate('aiProcessing'),
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.black, color: Colors.white),
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -321,7 +320,7 @@ class _ProcessingPageState extends State<ProcessingPage> with SingleTickerProvid
                               intent.service,
                               style: const TextStyle(
                                 fontSize: 16,
-                                fontWeight: FontWeight.black,
+                                fontWeight: FontWeight.w900,
                                 color: Colors.white,
                               ),
                             ),
