@@ -37,108 +37,123 @@ class AppShell extends StatelessWidget {
 
     return Scaffold(
       body: body,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          HapticFeedback.mediumImpact();
-          showModalBottomSheet(
-            context: context,
-            backgroundColor: Colors.transparent,
-            isScrollControlled: true,
-            builder: (ctx) => Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: appState.highContrast ? Colors.black : Colors.white,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-                border: appState.highContrast ? Border.all(color: Colors.white, width: 2) : null,
-              ),
-              child: SafeArea(
+      endDrawer: Drawer(
+        width: MediaQuery.of(context).size.width * 0.85,
+        backgroundColor: appState.highContrast ? Colors.black : Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.horizontal(left: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFDC2626),
+                  borderRadius: BorderRadius.only(topLeft: Radius.circular(24)),
+                ),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 48,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: appState.highContrast ? Colors.white : Colors.grey[300],
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    const Icon(Icons.warning_rounded, size: 48, color: Color(0xFFDC2626)),
+                    const Icon(Icons.warning_rounded, size: 48, color: Colors.white),
                     const SizedBox(height: 16),
                     Text(
                       appState.translate('sosTitle'),
-                      style: TextStyle(
-                        fontSize: 24,
+                      style: const TextStyle(
+                        fontSize: 28,
                         fontWeight: FontWeight.w900,
-                        color: appState.highContrast ? Colors.white : const Color(0xFF0F172A),
+                        color: Colors.white,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       appState.translate('sosDesc'),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 16,
-                        color: appState.highContrast ? Colors.white70 : const Color(0xFF64748B),
+                        color: Colors.white70,
                         fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    // Option 1: Alert Emergency Contact
-                    _buildSOSOption(
-                      icon: Icons.contact_emergency_rounded,
-                      title: appState.translate('sosContact'),
-                      subtitle: appState.translate('sosContactDesc'),
-                      color: const Color(0xFF2563EB),
-                      appState: appState,
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Alert sent to Emergency Contact!')),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    // Option 2: Call 999
-                    _buildSOSOption(
-                      icon: Icons.phone_in_talk_rounded,
-                      title: appState.translate('sosCall'),
-                      subtitle: appState.translate('sosCallDesc'),
-                      color: const Color(0xFFDC2626),
-                      appState: appState,
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Calling 999...')),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        minimumSize: const Size(double.infinity, 56),
-                      ),
-                      child: Text(
-                        appState.translate('sosCancel'),
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: appState.highContrast ? Colors.white : const Color(0xFF64748B),
-                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-          );
-        },
-        backgroundColor: const Color(0xFFDC2626), // Red
-        elevation: 4,
-        child: const Icon(Icons.sos_rounded, color: Colors.white, size: 28),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      // Option 1: Alert Emergency Contact
+                      _buildSOSOption(
+                        icon: Icons.contact_emergency_rounded,
+                        title: appState.translate('sosContact'),
+                        subtitle: appState.translate('sosContactDesc'),
+                        color: const Color(0xFF2563EB),
+                        appState: appState,
+                        onTap: () {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Alert sent to Emergency Contact!')),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      // Option 2: Call 999
+                      _buildSOSOption(
+                        icon: Icons.phone_in_talk_rounded,
+                        title: appState.translate('sosCall'),
+                        subtitle: appState.translate('sosCallDesc'),
+                        color: const Color(0xFFDC2626),
+                        appState: appState,
+                        onTap: () {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Calling 999...')),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: appState.highContrast ? Colors.white : Colors.grey[300]!,
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                  child: Text(
+                    appState.translate('sosCancel'),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: appState.highContrast ? Colors.white : const Color(0xFF64748B),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      floatingActionButton: Builder(
+        builder: (ctx) => FloatingActionButton(
+          onPressed: () {
+            HapticFeedback.mediumImpact();
+            Scaffold.of(ctx).openEndDrawer();
+          },
+          backgroundColor: const Color(0xFFDC2626), // Red
+          elevation: 4,
+          child: const Icon(Icons.sos_rounded, color: Colors.white, size: 28),
+        ),
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
