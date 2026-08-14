@@ -27,7 +27,7 @@ class AppTheme {
       textTheme: baseTextTheme.copyWith(
         displayLarge: baseTextTheme.displayLarge?.copyWith(
           fontSize: (baseTextTheme.displayLarge?.fontSize ?? 32) * scale,
-          fontWeight: FontWeight.black,
+          fontWeight: FontWeight.w900, // Changed from FontWeight.black
           color: textColor,
         ),
         displayMedium: baseTextTheme.displayMedium?.copyWith(
@@ -47,7 +47,7 @@ class AppTheme {
         ),
         bodyLarge: baseTextTheme.bodyLarge?.copyWith(
           fontSize: (baseTextTheme.bodyLarge?.fontSize ?? 16) * scale,
-          fontWeight: FontWeight.semibold,
+          fontWeight: FontWeight.w600, // Changed from FontWeight.semibold
           color: textColor,
         ),
         bodyMedium: baseTextTheme.bodyMedium?.copyWith(
@@ -66,7 +66,7 @@ class AppTheme {
           color: subTextColor,
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData( // Changed from CardTheme
         color: surfaceColor,
         elevation: 0,
         shape: RoundedRectangleBorder(

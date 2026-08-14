@@ -35,28 +35,36 @@ class SuaraWargaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appState = Provider.of<AppState>(context);
-
-    return MaterialApp(
-      title: 'SuaraWarga AI',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme(appState),
-      initialRoute: appState.isLoggedIn ? AppRoutes.home : AppRoutes.login,
-      routes: {
-        AppRoutes.login: (_) => const LoginPage(),
-        AppRoutes.register: (_) => const RegisterPage(),
-        AppRoutes.home: (_) => const AppShell(),
-        AppRoutes.govServices: (_) => const GovernmentServicesPage(),
-        AppRoutes.letterInterpreter: (_) => const LetterInterpreterPage(),
-        AppRoutes.formAssistant: (_) => const SmartFormPage(),
-        AppRoutes.docChecker: (_) => const DocumentCheckerPage(),
-        AppRoutes.smartMobility: (_) => const SmartMobilityPage(),
-        AppRoutes.tropicalRoute: (_) => const TropicalRoutePage(),
-        AppRoutes.transitGuide: (_) => const PublicTransportPage(),
-        AppRoutes.walkability: (_) => const WalkabilityPage(),
-        AppRoutes.listening: (_) => const ListeningPage(),
-        AppRoutes.processing: (_) => const ProcessingPage(),
-      },
+    return ChangeNotifierProvider(
+      create: (_) => AppState(),
+      child: Consumer<AppState>(
+        builder: (context, appState, child) {
+          return MaterialApp(
+            title: 'SuaraWarga AI',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.getTheme(
+              largeText: false,
+              highContrast: false,
+            ),
+            initialRoute: appState.isLoggedIn ? AppRoutes.home : AppRoutes.login,
+            routes: {
+              AppRoutes.login: (_) => const LoginPage(),
+              AppRoutes.register: (_) => const RegisterPage(),
+              AppRoutes.home: (_) => const AppShell(),
+              AppRoutes.govServices: (_) => const GovernmentServicesPage(),
+              AppRoutes.letterInterpreter: (_) => const LetterInterpreterPage(),
+              AppRoutes.formAssistant: (_) => const SmartFormPage(),
+              AppRoutes.docChecker: (_) => const DocumentCheckerPage(),
+              AppRoutes.smartMobility: (_) => const SmartMobilityPage(),
+              AppRoutes.tropicalRoute: (_) => const TropicalRoutePage(),
+              AppRoutes.transitGuide: (_) => const PublicTransportPage(),
+              AppRoutes.walkability: (_) => const WalkabilityPage(),
+              AppRoutes.listening: (_) => const ListeningPage(),
+              AppRoutes.processing: (_) => const ProcessingPage(),
+            },
+          );
+        },
+      ),
     );
   }
 }
