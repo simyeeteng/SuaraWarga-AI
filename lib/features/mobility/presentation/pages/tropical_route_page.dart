@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/services/app_state.dart';
 import '../../../../shared/widgets/custom_header.dart';
 import '../../../../shared/widgets/ai_tag.dart';
+import 'active_navigation_page.dart';
 import '../widgets/route_card.dart';
 
 class TropicalRoutePage extends StatefulWidget {
@@ -109,13 +110,13 @@ class _TropicalRoutePageState extends State<TropicalRoutePage> {
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey[300]),
                       ),
-                      Container(color: Colors.black.withOpacity(0.2)),
+                      Container(color: Colors.black.withValues(alpha: 0.2)),
                       // Floating label
                       Center(
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Row(
@@ -192,7 +193,16 @@ class _TropicalRoutePageState extends State<TropicalRoutePage> {
                   width: double.infinity,
                   height: 60,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ActiveNavigationPage(
+                            routeIcon: Icons.directions_walk_rounded,
+                          ),
+                        ),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF059669),
                     ),

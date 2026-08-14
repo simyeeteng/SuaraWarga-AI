@@ -91,8 +91,8 @@ class _ServiceChatBarState extends State<ServiceChatBar>
                               width: 10,
                               height: 10,
                               decoration: BoxDecoration(
-                                color: const Color(0xFFEF4444).withOpacity(
-                                    0.4 + (_pulsingController.value * 0.6)),
+                                color: const Color(0xFFEF4444).withValues(
+                                    alpha: 0.4 + (_pulsingController.value * 0.6)),
                                 shape: BoxShape.circle,
                               ),
                             );
@@ -159,7 +159,7 @@ class _ServiceChatBarState extends State<ServiceChatBar>
                 boxShadow: [
                   BoxShadow(
                     color: (isListening ? const Color(0xFFEF4444) : const Color(0xFF2563EB))
-                        .withOpacity(0.3),
+                        .withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   )

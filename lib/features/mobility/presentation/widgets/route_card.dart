@@ -50,7 +50,7 @@ class RouteCard extends StatelessWidget {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(0xFF2563EB).withOpacity(0.1),
+                    color: const Color(0xFF2563EB).withValues(alpha: 0.1),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   )

@@ -1,12 +1,11 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/services/app_state.dart';
 import '../../../../shared/widgets/custom_header.dart';
-import '../../../../shared/widgets/ai_tag.dart';
 import '../../../../shared/widgets/chat_bubble.dart';
 import '../../../../shared/widgets/service_chat_bar.dart';
 import '../widgets/checklist_item.dart';
+import '../../../../shared/pages/success_page.dart';
 
 class DocumentCheckerPage extends StatefulWidget {
   const DocumentCheckerPage({super.key});
@@ -57,17 +56,23 @@ class _DocumentCheckerPageState extends State<DocumentCheckerPage> {
 
     Future.delayed(const Duration(milliseconds: 1200), () {
       if (!mounted) return;
-      final replies = [
-        appState.translate('aiReply1'),
-        appState.translate('aiReply2'),
-        appState.translate('aiReply3'),
-        appState.translate('aiReply4'),
-        appState.translate('aiReply5'),
-      ];
-      final randomReply = replies[math.Random().nextInt(replies.length)];
+      
+      String aiReply;
+      final lower = text.toLowerCase();
+      final isMs = appState.translate('currentLang') == 'ms';
+      
+      if (lower.contains('photo') || lower.contains('gambar')) {
+        aiReply = isMs ? 'Ya, sila bawa gambar berukuran pasport dengan latar belakang biru.' : 'Yes, please bring a passport-sized photo with a blue background.';
+      } else if (lower.contains('utility') || lower.contains('bil')) {
+        aiReply = isMs ? 'Mana-mana bil air atau elektrik dari 3 bulan lepas diterima.' : 'Any water or electricity bill from the last 3 months is acceptable.';
+      } else if (lower.contains('bank')) {
+        aiReply = isMs ? 'Ya, anda boleh bawa salinan cetak penyata bank dalam talian.' : 'Yes, you can bring a printed copy of your online bank statement.';
+      } else {
+        aiReply = isMs ? 'Sila pastikan semua dokumen yang disenaraikan sudah sedia.' : 'Please make sure all the documents listed above are ready before proceeding.';
+      }
 
       setState(() {
-        _messages.add(ChatMsg(role: 'ai', text: randomReply));
+        _messages.add(ChatMsg(role: 'ai', text: aiReply));
         _isThinking = false;
       });
       _scrollToBottom();
@@ -77,13 +82,13 @@ class _DocumentCheckerPageState extends State<DocumentCheckerPage> {
   void _toggleMic(AppState appState) {
     if (_isListening) {
       setState(() => _isListening = false);
-      _sendMessage(appState.translate('voiceSample'), true, appState);
+      _sendMessage('Do I need a color photo?', true, appState);
     } else {
       setState(() => _isListening = true);
       Future.delayed(const Duration(milliseconds: 2000), () {
         if (!mounted || !_isListening) return;
         setState(() => _isListening = false);
-        _sendMessage(appState.translate('voiceSample'), true, appState);
+        _sendMessage('Do I need a color photo?', true, appState);
       });
     }
   }
@@ -228,7 +233,7 @@ class _DocumentCheckerPageState extends State<DocumentCheckerPage> {
                                     ],
                                   ),
                                 );
-                              }).toList(),
+                              }),
                             ],
                           ),
                         ),
@@ -261,14 +266,45 @@ class _DocumentCheckerPageState extends State<DocumentCheckerPage> {
                     ],
                   ),
                 ),
-                // Chat control
-                ServiceChatBar(
-                  
-                  isListening: _isListening,
-                  isThinking: _isThinking,
-                  onSend: (text) => _sendMessage(text, false, appState),
-                  onToggleMic: () => _toggleMic(appState),
-                )
+                // Chat control OR Submit Button
+                if (allReady)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 20, right: 20, bottom: 32, top: 12),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 60,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => SuccessPage(
+                                title: appState.translate('docsVerifiedTitle') ?? 'Documents Verified',
+                                message: appState.translate('docsVerifiedMessage') ?? 'Your documents have been securely verified and submitted.',
+                                icon: Icons.verified_user_rounded,
+                              ),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981), // green-500
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        child: Text(
+                          appState.translate('submitDocuments') ?? 'Submit Documents',
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  ServiceChatBar(
+                    isListening: _isListening,
+                    isThinking: _isThinking,
+                    onSend: (text) => _sendMessage(text, false, appState),
+                    onToggleMic: () => _toggleMic(appState),
+                  )
               ],
             ),
           )

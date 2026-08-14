@@ -48,7 +48,7 @@ class ChatBubble extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: isUser ? const Color(0xFF2563EB) : Colors.white,
+                color: isUser ? const Color(0xFF1E40AF) : const Color(0xFFEFF6FF), // Deep Blue vs Soft Blue
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(24),
                   topRight: const Radius.circular(24),
@@ -57,12 +57,12 @@ class ChatBubble extends StatelessWidget {
                 ),
                 border: isUser
                     ? null
-                    : Border.all(color: const Color(0xFFEFF6FF), width: 1.5),
+                    : Border.all(color: const Color(0xFFBFDBFE), width: 1.5), // Border blue
                 boxShadow: isUser
                     ? null
                     : [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.02),
+                          color: Colors.black.withValues(alpha: 0.02),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         )
@@ -99,8 +99,8 @@ class ChatBubble extends StatelessWidget {
                     message.text,
                     style: TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: isUser ? Colors.white : const Color(0xFF1E293B),
+                      fontWeight: FontWeight.w600,
+                      color: isUser ? Colors.white : const Color(0xFF1E3A8A),
                       height: 1.4,
                     ),
                   ),
@@ -203,7 +203,7 @@ class _ThinkingBubbleState extends State<ThinkingBubble>
                       height: 8,
                       margin: const EdgeInsets.symmetric(horizontal: 2.0),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF60A5FA).withOpacity(0.3 + 0.7 * wave),
+                        color: const Color(0xFF60A5FA).withValues(alpha: 0.3 + 0.7 * wave),
                         shape: BoxShape.circle,
                       ),
                     );

@@ -47,7 +47,7 @@ class _AITagState extends State<AITag> with SingleTickerProviderStateMixin {
                 width: 6,
                 height: 6,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3B82F6).withOpacity(0.4 + (_controller.value * 0.6)), // bg-blue-500 pulsing
+                  color: const Color(0xFF3B82F6).withValues(alpha: 0.4 + (_controller.value * 0.6)), // bg-blue-500 pulsing
                   shape: BoxShape.circle,
                 ),
               );

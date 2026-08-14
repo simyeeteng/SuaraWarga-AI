@@ -23,7 +23,7 @@ class VoiceRecorder extends StatelessWidget {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: (isRecording ? const Color(0xFFEF4444) : const Color(0xFF2563EB)).withOpacity(0.3),
+              color: (isRecording ? const Color(0xFFEF4444) : const Color(0xFF2563EB)).withValues(alpha: 0.3),
               blurRadius: 10,
               offset: const Offset(0, 4),
             )

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/services/app_state.dart';
 import '../../../../shared/widgets/custom_header.dart';
-import '../../../../shared/widgets/ai_tag.dart';
 import '../../../../core/constants/constants.dart';
 
 class GovernmentServicesPage extends StatelessWidget {
@@ -62,10 +61,10 @@ class GovernmentServicesPage extends StatelessWidget {
               children: [
                 // Banner Card
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                      colors: [Color(0xFF1E40AF), Color(0xFF2563EB)], // Deep Blue gradient
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -77,7 +76,7 @@ class GovernmentServicesPage extends StatelessWidget {
                         width: 56,
                         height: 56,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 30),
@@ -110,89 +109,101 @@ class GovernmentServicesPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Service cards
-                ...services.map((svc) {
-                  final List<Color> colors = svc['colors'] as List<Color>;
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: InkWell(
+                GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  childAspectRatio: 0.85,
+                  children: services.map((svc) {
+                    final List<Color> colors = svc['colors'] as List<Color>;
+                    final bool isMostUsed = svc['route'] == AppRoutes.formAssistant || svc['route'] == AppRoutes.listening;
+                    return InkWell(
                       onTap: () {
                         if (svc['route'] == AppRoutes.listening) {
-                          // Setup default first intent for direct mic assistant tap
                           appState.setPendingIntent(AppConstants.VOICE_INTENTS[0]);
                         }
                         Navigator.pushNamed(context, svc['route'] as String);
                       },
                       borderRadius: BorderRadius.circular(24),
                       child: Container(
-                        padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color: appState.highContrast ? Colors.black : const Color(0xFFEFF6FF),
+                            color: appState.highContrast ? Colors.black : const Color(0xFFBFDBFE),
                             width: appState.highContrast ? 2.5 : 1.5,
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF1E3A8A).withValues(alpha: 0.03),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        child: Row(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              width: 56,
-                              height: 56,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: colors,
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: colors,
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Icon(svc['icon'] as IconData, color: Colors.white, size: 24),
                                 ),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Icon(svc['icon'] as IconData, color: Colors.white, size: 26),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    appState.translate(svc['titleKey'] as String),
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w900,
-                                      color: Color(0xFF0F172A),
-                                      height: 1.15,
+                                if (isMostUsed)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFEF3C7),
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
+                                    child: const Icon(Icons.local_fire_department_rounded, color: Color(0xFFD97706), size: 16),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    appState.translate(svc['descKey'] as String),
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: Color(0xFF64748B),
-                                      fontWeight: FontWeight.w500,
-                                      height: 1.35,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: (svc['tags'] as List<String>).map((tag) {
-                                      return Padding(
-                                        padding: const EdgeInsets.only(right: 6),
-                                        child: AITag(label: tag),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ],
-                              ),
+                              ],
                             ),
-                            const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1), size: 24),
+                            const Spacer(),
+                            Text(
+                              appState.translate(svc['titleKey'] as String),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF1E3A8A),
+                                height: 1.1,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              appState.translate(svc['descKey'] as String),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF475569),
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ],
                         ),
                       ),
-                    ),
-                  );
-                }),
+                    );
+                  }).toList(),
+                ),
                 const SizedBox(height: 12),
                 // Footer Instruction Box
                 Container(

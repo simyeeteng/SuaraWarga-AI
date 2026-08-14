@@ -5,6 +5,7 @@ import '../../../../shared/widgets/custom_header.dart';
 import '../../../../shared/widgets/ai_tag.dart';
 import '../widgets/image_upload.dart';
 import '../widgets/detection_result.dart';
+import '../../../../shared/pages/success_page.dart';
 
 class WalkabilityPage extends StatefulWidget {
   const WalkabilityPage({super.key});
@@ -190,7 +191,22 @@ class _WalkabilityPageState extends State<WalkabilityPage> {
                   width: double.infinity,
                   height: 60,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      if (uploaded) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => SuccessPage(
+                              title: appState.translate('contributionSaved') ?? 'Contribution Saved',
+                              message: appState.translate('contributionSavedMessage') ?? 'Thank you! Your photo will help improve accessibility routing for others.',
+                              icon: Icons.volunteer_activism_rounded,
+                            ),
+                          ),
+                        );
+                      } else {
+                        appState.setWalkwayPhotoUploaded(true);
+                      }
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF059669),
                     ),
@@ -219,7 +235,7 @@ class _WalkabilityPageState extends State<WalkabilityPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.9),
+        color: color.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -297,7 +313,7 @@ class _LaserScanOverlayState extends State<_LaserScanOverlay> with SingleTickerP
               color: const Color(0xFF34D399), // emerald-400
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF34D399).withOpacity(0.8),
+                  color: const Color(0xFF34D399).withValues(alpha: 0.8),
                   blurRadius: 8,
                   spreadRadius: 2,
                 )

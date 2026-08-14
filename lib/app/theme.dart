@@ -5,63 +5,66 @@ class AppTheme {
   static ThemeData getTheme({required bool largeText, required bool highContrast}) {
     final double scale = largeText ? 1.2 : 1.0;
 
-    // Define colors according to High Contrast preferences
-    final Color primaryColor = highContrast ? const Color(0xFF0000CC) : const Color(0xFF2563EB);
-    final Color backgroundColor = highContrast ? Colors.white : const Color(0xFFF8FAFC);
-    final Color surfaceColor = Colors.white;
-    final Color textColor = highContrast ? Colors.black : const Color(0xFF0F172A);
-    final Color subTextColor = highContrast ? const Color(0xFF222222) : const Color(0xFF64748B);
+    // Defined from UI-UX-Pro-Max & Frontend-Design synthesis
+    final Color primaryColor = highContrast ? const Color(0xFF0000CC) : const Color(0xFF1E40AF);
+    final Color backgroundColor = highContrast ? Colors.white : const Color(0xFFEFF6FF);
+    const Color surfaceColor = Colors.white;
+    final Color textColor = highContrast ? Colors.black : const Color(0xFF1E3A8A);
+    final Color subTextColor = highContrast ? const Color(0xFF222222) : const Color(0xFF475569);
+    final Color borderColor = highContrast ? Colors.black : const Color(0xFFBFDBFE);
 
-    final TextTheme baseTextTheme = GoogleFonts.interTextTheme();
+    final TextTheme baseTextTheme = GoogleFonts.plusJakartaSansTextTheme();
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryColor,
         primary: primaryColor,
+        secondary: const Color(0xFF16A34A),
+        tertiary: const Color(0xFFD97706),
         background: backgroundColor,
         surface: surfaceColor,
         brightness: Brightness.light,
       ),
       scaffoldBackgroundColor: backgroundColor,
       textTheme: baseTextTheme.copyWith(
-        displayLarge: baseTextTheme.displayLarge?.copyWith(
-          fontSize: (baseTextTheme.displayLarge?.fontSize ?? 32) * scale,
+        displayLarge: GoogleFonts.outfit(
+          fontSize: 32 * scale,
           fontWeight: FontWeight.w900,
           color: textColor,
         ),
-        displayMedium: baseTextTheme.displayMedium?.copyWith(
-          fontSize: (baseTextTheme.displayMedium?.fontSize ?? 28) * scale,
+        displayMedium: GoogleFonts.outfit(
+          fontSize: 28 * scale,
           fontWeight: FontWeight.bold,
           color: textColor,
         ),
-        titleLarge: baseTextTheme.titleLarge?.copyWith(
-          fontSize: (baseTextTheme.titleLarge?.fontSize ?? 22) * scale,
+        titleLarge: GoogleFonts.outfit(
+          fontSize: 22 * scale,
           fontWeight: FontWeight.bold,
           color: textColor,
         ),
-        titleMedium: baseTextTheme.titleMedium?.copyWith(
-          fontSize: (baseTextTheme.titleMedium?.fontSize ?? 18) * scale,
+        titleMedium: GoogleFonts.outfit(
+          fontSize: 18 * scale,
           fontWeight: FontWeight.bold,
           color: textColor,
         ),
         bodyLarge: baseTextTheme.bodyLarge?.copyWith(
-          fontSize: (baseTextTheme.bodyLarge?.fontSize ?? 16) * scale,
+          fontSize: 16 * scale,
           fontWeight: FontWeight.w600,
           color: textColor,
         ),
         bodyMedium: baseTextTheme.bodyMedium?.copyWith(
-          fontSize: (baseTextTheme.bodyMedium?.fontSize ?? 14) * scale,
+          fontSize: 14 * scale,
           fontWeight: FontWeight.normal,
           color: subTextColor,
         ),
         labelLarge: baseTextTheme.labelLarge?.copyWith(
-          fontSize: (baseTextTheme.labelLarge?.fontSize ?? 14) * scale,
+          fontSize: 14 * scale,
           fontWeight: FontWeight.bold,
           color: textColor,
         ),
         labelSmall: baseTextTheme.labelSmall?.copyWith(
-          fontSize: (baseTextTheme.labelSmall?.fontSize ?? 11) * scale,
+          fontSize: 11 * scale,
           fontWeight: FontWeight.bold,
           color: subTextColor,
         ),
@@ -72,7 +75,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
           side: BorderSide(
-            color: highContrast ? Colors.black : const Color(0xFFDBEAFE),
+            color: borderColor,
             width: highContrast ? 2.5 : 1.0,
           ),
         ),
@@ -87,14 +90,14 @@ class AppTheme {
             borderRadius: BorderRadius.circular(24),
             side: highContrast ? const BorderSide(color: Colors.black, width: 2.0) : BorderSide.none,
           ),
-          textStyle: GoogleFonts.inter(
+          textStyle: GoogleFonts.plusJakartaSans(
             fontSize: 18 * scale,
             fontWeight: FontWeight.w900,
           ),
         ),
       ),
       dividerTheme: DividerThemeData(
-        color: highContrast ? Colors.black : const Color(0xFFEFF6FF),
+        color: borderColor,
         thickness: highContrast ? 2.0 : 1.0,
       ),
     );

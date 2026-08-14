@@ -57,7 +57,7 @@ class QuickAction extends StatelessWidget {
         ),
         if (showDivider)
           const Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: EdgeInsets.symmetric(horizontal: 20),
             child: Divider(
               height: 1,
             ),

@@ -87,20 +87,27 @@ class _DetectionResultState extends State<DetectionResult> with SingleTickerProv
                     return Stack(
                       children: [
                         Container(
-                          height: 8,
+                          height: 14,
                           width: double.infinity,
                           decoration: BoxDecoration(
                             color: const Color(0xFFF1F5F9), // slate-100
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(7),
                           ),
                         ),
                         FractionallySizedBox(
                           widthFactor: _animation.value,
                           child: Container(
-                            height: 8,
+                            height: 14,
                             decoration: BoxDecoration(
                               color: widget.color,
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(7),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: widget.color.withValues(alpha: 0.3),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
                           ),
                         ),

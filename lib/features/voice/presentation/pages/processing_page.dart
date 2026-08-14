@@ -106,7 +106,23 @@ class _ProcessingPageState extends State<ProcessingPage> with SingleTickerProvid
                       height: 64,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white.withOpacity(0.2), width: 4),
+                        gradient: SweepGradient(
+                          colors: [
+                            Colors.white.withValues(alpha: 0.0),
+                            const Color(0xFF60A5FA),
+                            Colors.white,
+                          ],
+                          stops: const [0.0, 0.5, 1.0],
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4.0), // Spinner thickness
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(0xFF1D4ED8), // Match background to hollow it out
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -146,13 +162,13 @@ class _ProcessingPageState extends State<ProcessingPage> with SingleTickerProvid
                     textCol = const Color(0xFF0F172A); // text-slate-900
                     descCol = const Color(0xFF475569); // text-slate-600
                   } else if (isPassed) {
-                    itemBg = Colors.white.withOpacity(0.2);
-                    borderCol = Colors.white.withOpacity(0.2);
+                    itemBg = Colors.white.withValues(alpha: 0.2);
+                    borderCol = Colors.white.withValues(alpha: 0.2);
                     textCol = Colors.white;
                     descCol = Colors.white70;
                   } else {
-                    itemBg = Colors.white.withOpacity(0.05);
-                    borderCol = Colors.white.withOpacity(0.1);
+                    itemBg = Colors.white.withValues(alpha: 0.05);
+                    borderCol = Colors.white.withValues(alpha: 0.1);
                     textCol = Colors.white38;
                     descCol = Colors.white24;
                   }
@@ -197,7 +213,7 @@ class _ProcessingPageState extends State<ProcessingPage> with SingleTickerProvid
                           width: 48,
                           height: 48,
                           decoration: BoxDecoration(
-                            color: isFuture ? Colors.white.withOpacity(0.1) : step.color,
+                            color: isFuture ? Colors.white.withValues(alpha: 0.1) : step.color,
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Icon(stepIcon, color: Colors.white, size: 24),
@@ -223,7 +239,7 @@ class _ProcessingPageState extends State<ProcessingPage> with SingleTickerProvid
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(isActive ? 0.2 : 0.1),
+                                        color: Colors.white.withValues(alpha: isActive ? 0.2 : 0.1),
                                         borderRadius: BorderRadius.circular(99),
                                       ),
                                       child: Text(
@@ -276,8 +292,8 @@ class _ProcessingPageState extends State<ProcessingPage> with SingleTickerProvid
                 padding: const EdgeInsets.only(left: 20, right: 20, bottom: 40),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.2), // green-500/20
-                    border: Border.all(color: const Color(0xFF34D399).withOpacity(0.3)),
+                    color: const Color(0xFF10B981).withValues(alpha: 0.2), // green-500/20
+                    border: Border.all(color: const Color(0xFF34D399).withValues(alpha: 0.3)),
                     borderRadius: BorderRadius.circular(24),
                   ),
                   padding: const EdgeInsets.all(16),

@@ -15,7 +15,7 @@ dependencies:
   flutter_tts: ^3.8.3
   
   # UI & Design
-  google_fonts: ^6.1.0
+  google_fonts: ^8.2.1
   flutter_svg: ^2.0.9
   
   # State Management

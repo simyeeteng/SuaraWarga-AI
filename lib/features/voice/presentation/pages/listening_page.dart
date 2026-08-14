@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../app/routes.dart';
-import '../../../../core/constants/constants.dart';
 import '../../../../core/services/app_state.dart';
 import '../../../../shared/widgets/ai_tag.dart';
 
@@ -96,7 +95,7 @@ class _ListeningPageState extends State<ListeningPage> with SingleTickerProvider
                     icon: const Icon(Icons.close_rounded, color: Colors.white),
                     onPressed: () => Navigator.pop(context),
                     style: IconButton.styleFrom(
-                      backgroundColor: Colors.white.withOpacity(0.1),
+                      backgroundColor: Colors.white.withValues(alpha: 0.1),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
                   ),
@@ -137,20 +136,33 @@ class _ListeningPageState extends State<ListeningPage> with SingleTickerProvider
                                 animation: _pulsingController,
                                 builder: (context, child) {
                                   final double animationVal = _pulsingController.value;
-                                  final double progress = (animationVal + (i * 0.33)) % 1.0;
-                                  final double scale = 1.0 + (progress * 0.8);
-                                  final double opacity = (1.0 - progress) * 0.4;
-                                  return Container(
-                                    width: 110,
-                                    height: 110,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: const Color(0xFF60A5FA).withOpacity(opacity),
-                                        width: 1.5,
-                                      ),
+                                    final double progress = (animationVal + (i * 0.33)) % 1.0;
+                                    final double scale = 1.0 + (progress * 0.8);
+                                    final double opacity = (1.0 - progress) * 0.4;
+                                    
+                                    final String lang = intent.detectedLang;
+                                    Color dialectColor = const Color(0xFF60A5FA); // blue
+                                    if (lang.toLowerCase().contains('hokkien') || lang.toLowerCase().contains('mandarin')) {
+                                      dialectColor = const Color(0xFFF59E0B); // amber
+                                    } else if (lang.toLowerCase().contains('cantonese')) {
+                                      dialectColor = const Color(0xFF8B5CF6); // purple
+                                    } else if (lang.toLowerCase().contains('tamil')) {
+                                      dialectColor = const Color(0xFF10B981); // green
+                                    } else if (lang.toLowerCase().contains('malay')) {
+                                      dialectColor = const Color(0xFFEF4444); // red
+                                    }
+
+                                    return Container(
+                                      width: 110,
+                                      height: 110,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: dialectColor.withValues(alpha: opacity),
+                                          width: 1.5,
+                                        ),
                                     ),
-                                    transform: Matrix4.identity()..scale(scale),
+                                    transform: Matrix4.diagonal3Values(scale, scale, 1.0),
                                     transformAlignment: Alignment.center,
                                   );
                                 },
@@ -166,7 +178,7 @@ class _ListeningPageState extends State<ListeningPage> with SingleTickerProvider
                               boxShadow: [
                                 BoxShadow(
                                   color: (_phase == 'done' ? const Color(0xFF10B981) : const Color(0xFF2563EB))
-                                      .withOpacity(0.4),
+                                      .withValues(alpha: 0.4),
                                   blurRadius: 24,
                                   offset: const Offset(0, 4),
                                 )
@@ -183,15 +195,24 @@ class _ListeningPageState extends State<ListeningPage> with SingleTickerProvider
                     ),
                     const SizedBox(height: 48),
                     // Sound waves
-                    if (_phase == 'listening') const _AudioWaves() else const SizedBox(height: 48),
+                    if (_phase == 'listening') _AudioWaves(
+                        dialectColor: () {
+                          final String lang = intent.detectedLang;
+                          if (lang.toLowerCase().contains('hokkien') || lang.toLowerCase().contains('mandarin')) return const Color(0xFFF59E0B);
+                          if (lang.toLowerCase().contains('cantonese')) return const Color(0xFF8B5CF6);
+                          if (lang.toLowerCase().contains('tamil')) return const Color(0xFF10B981);
+                          if (lang.toLowerCase().contains('malay')) return const Color(0xFFEF4444);
+                          return const Color(0xFF60A5FA);
+                        }(),
+                    ) else const SizedBox(height: 48),
                     const SizedBox(height: 32),
                     // Transcription display card
                     Container(
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: Colors.white.withOpacity(0.15)),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                       ),
                       padding: const EdgeInsets.all(20),
                       child: Column(
@@ -249,9 +270,9 @@ class _ListeningPageState extends State<ListeningPage> with SingleTickerProvider
                       Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withOpacity(0.15)),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                         ),
                         padding: const EdgeInsets.all(20),
                         child: Column(
@@ -286,9 +307,9 @@ class _ListeningPageState extends State<ListeningPage> with SingleTickerProvider
                       Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withOpacity(0.15)),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                         ),
                         padding: const EdgeInsets.all(20),
                         child: Column(
@@ -318,7 +339,7 @@ class _ListeningPageState extends State<ListeningPage> with SingleTickerProvider
                                   width: 36,
                                   height: 36,
                                   decoration: BoxDecoration(
-                                    color: intent.serviceColor.withOpacity(0.2),
+                                    color: intent.serviceColor.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Icon(
@@ -398,7 +419,8 @@ class _ListeningPageState extends State<ListeningPage> with SingleTickerProvider
 }
 
 class _AudioWaves extends StatefulWidget {
-  const _AudioWaves();
+  final Color dialectColor;
+  const _AudioWaves({required this.dialectColor});
 
   @override
   State<_AudioWaves> createState() => _AudioWavesState();
@@ -440,7 +462,7 @@ class _AudioWavesState extends State<_AudioWaves> with SingleTickerProviderState
                 height: height,
                 margin: const EdgeInsets.symmetric(horizontal: 2.0),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF60A5FA),
+                  color: widget.dialectColor,
                   borderRadius: BorderRadius.circular(99),
                 ),
               );

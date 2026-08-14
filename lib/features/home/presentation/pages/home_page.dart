@@ -29,9 +29,9 @@ class HomePage extends StatelessWidget {
             width: double.infinity,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF2563EB), Color(0xFF3B82F6)], // from-blue-600 to-blue-500
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+                colors: [Color(0xFF1E40AF), Color(0xFF2563EB)], // Deep Blue to lighter blue
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
             ),
@@ -66,23 +66,33 @@ class HomePage extends StatelessWidget {
                         ],
                       ),
                     ),
+                    // Weather & Comfort Score Widget
                     Container(
-                      width: 48,
-                      height: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                       ),
-                      child: const Center(
-                        child: Text(
-                          '👋',
-                          style: TextStyle(fontSize: 24),
-                        ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.wb_sunny_rounded, color: Color(0xFFFCD34D), size: 20), // Amber-300
+                          SizedBox(width: 8),
+                          Text(
+                            '32°C • Comfort: Good',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     )
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 // Inline language chips
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -92,27 +102,27 @@ class HomePage extends StatelessWidget {
                       return GestureDetector(
                         onTap: () => appState.setCurrentLanguage(l.id),
                         child: Container(
-                          margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          margin: const EdgeInsets.only(right: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                           decoration: BoxDecoration(
-                            color: isSel ? Colors.white : Colors.white.withOpacity(0.15),
+                            color: isSel ? Colors.white : Colors.white.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(999),
                             border: Border.all(
-                              color: isSel ? Colors.white : Colors.white.withOpacity(0.2),
-                              width: 1,
+                              color: isSel ? Colors.white : Colors.white.withValues(alpha: 0.3),
+                              width: 1.5,
                             ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(l.flag, style: const TextStyle(fontSize: 14)),
-                              const SizedBox(width: 4),
+                              Text(l.flag, style: const TextStyle(fontSize: 18)),
+                              const SizedBox(width: 8),
                               Text(
                                 l.native,
                                 style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: isSel ? const Color(0xFF1D4ED8) : Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: isSel ? const Color(0xFF1E40AF) : Colors.white,
                                 ),
                               ),
                             ],
@@ -127,9 +137,9 @@ class HomePage extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
+                    color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withOpacity(0.2)),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                   ),
                   child: Row(
                     children: [
@@ -233,7 +243,7 @@ class HomePage extends StatelessWidget {
                                   width: 36,
                                   height: 36,
                                   decoration: BoxDecoration(
-                                    color: intent.serviceColor.withOpacity(0.15),
+                                    color: intent.serviceColor.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Icon(

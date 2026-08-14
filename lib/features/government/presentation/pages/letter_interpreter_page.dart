@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/services/app_state.dart';
 import '../../../../shared/widgets/custom_header.dart';
-import '../../../../shared/widgets/ai_tag.dart';
 import '../../../../shared/widgets/chat_bubble.dart';
 import '../../../../shared/widgets/service_chat_bar.dart';
 import '../widgets/letter_upload.dart';
@@ -122,93 +121,88 @@ class _LetterInterpreterPageState extends State<LetterInterpreterPage> {
                           controller: _scrollController,
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                           children: [
-                            // OCR Raw result
+                            // Top Result Card (Thumbnail + Summary side-by-side)
                             Container(
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(24),
-                                border: Border.all(color: const Color(0xFFEFF6FF), width: 1.5),
-                              ),
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const AITag(label: 'OCR'),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        appState.translate('textExtracted'),
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Color(0xFF64748B),
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      )
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF8FAFC),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                                    ),
-                                    child: const Text(
-                                      'JABATAN PENDAFTARAN NEGARA\n'
-                                      'Ref: JPN/IC/2024/00847\n'
-                                      'Tarikh: 15 Januari 2025\n'
-                                      'NOTIS PEMBAHARUAN KAD PENGENALAN\n'
-                                      'Kad pengenalan anda akan tamat tempoh pada 28 Februari 2025...',
-                                      style: TextStyle(
-                                        fontFamily: 'monospace',
-                                        fontSize: 12,
-                                        color: Color(0xFF475569),
-                                        height: 1.4,
-                                      ),
-                                    ),
+                                border: Border.all(color: const Color(0xFFBFDBFE), width: 1.5),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF1E3A8A).withValues(alpha: 0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
                                   )
                                 ],
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            // AI Translated card
-                            Container(
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEFF6FF), // bg-blue-50
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(color: const Color(0xFFDBEAFE), width: 1.5),
-                              ),
                               padding: const EdgeInsets.all(16),
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Icon(Icons.smart_toy_rounded, size: 20, color: Color(0xFF2563EB)),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        appState.translate('aiExplanationLabel'),
-                                        style: const TextStyle(
-                                          color: Color(0xFF1D4ED8),
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.bold,
+                                      // Document Thumbnail
+                                      Container(
+                                        width: 80,
+                                        height: 100,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF1F5F9),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                                        ),
+                                        child: const Icon(Icons.insert_drive_file_rounded, color: Color(0xFF94A3B8), size: 36),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      // AI Summary Panel
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                const Icon(Icons.smart_toy_rounded, size: 18, color: Color(0xFF1E40AF)),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  appState.translate('aiExplanationLabel'),
+                                                  style: const TextStyle(
+                                                    color: Color(0xFF1E40AF),
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              appState.translate('letterAiResult'),
+                                              style: const TextStyle(
+                                                color: Color(0xFF334155),
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w700,
+                                                height: 1.45,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
-                                      const AITag(label: 'LLM'),
                                     ],
                                   ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    appState.translate('letterAiResult'),
-                                    style: const TextStyle(
-                                      color: Color(0xFF334155),
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                      height: 1.45,
+                                  const SizedBox(height: 16),
+                                  // Prominent Read Aloud Button
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton.icon(
+                                      onPressed: () {}, // Audio integration later
+                                      icon: const Icon(Icons.volume_up_rounded, size: 24),
+                                      label: const Text('Read Aloud'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF1E40AF),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(16),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ],

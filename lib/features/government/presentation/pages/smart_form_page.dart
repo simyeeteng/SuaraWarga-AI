@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/services/app_state.dart';
@@ -6,6 +5,7 @@ import '../../../../shared/widgets/custom_header.dart';
 import '../../../../shared/widgets/ai_tag.dart';
 import '../../../../shared/widgets/chat_bubble.dart';
 import '../../../../shared/widgets/service_chat_bar.dart';
+import '../../../../shared/pages/success_page.dart';
 
 class SmartFormPage extends StatefulWidget {
   const SmartFormPage({super.key});
@@ -62,22 +62,34 @@ class _SmartFormPageState extends State<SmartFormPage> {
       _messages.add(ChatMsg(role: 'user', text: text.trim(), isVoice: isVoice));
       _isThinking = true;
     });
+    
+    final currentStep = appState.formStep;
     appState.nextFormStep();
     _scrollToBottom();
 
     Future.delayed(const Duration(milliseconds: 1200), () {
       if (!mounted) return;
-      final replies = [
-        appState.translate('aiReply1'),
-        appState.translate('aiReply2'),
-        appState.translate('aiReply3'),
-        appState.translate('aiReply4'),
-        appState.translate('aiReply5'),
-      ];
-      final randomReply = replies[math.Random().nextInt(replies.length)];
+      
+      String aiReply;
+      switch (currentStep) {
+        case 3:
+          aiReply = appState.translate('currentLang') == 'ms' ? 'Baik. Seterusnya, apakah nombor telefon anda?' : 'Got it. Next, what is your contact number?';
+          break;
+        case 4:
+          aiReply = appState.translate('currentLang') == 'ms' ? 'Terima kasih. Cawangan mana untuk ambil MyKad anda?' : 'Thank you. Which branch would you like to pick up your MyKad?';
+          break;
+        case 5:
+          aiReply = appState.translate('currentLang') == 'ms' ? 'Noted. Bila anda ingin menempah masa temu janji?' : 'Noted. When would you like to schedule your appointment?';
+          break;
+        case 6:
+          aiReply = appState.translate('currentLang') == 'ms' ? 'Sempurna. Sila semak permohonan anda sebelum hantar.' : 'Perfect. Here is your completed application review. Please check the details before submitting.';
+          break;
+        default:
+          aiReply = appState.translate('currentLang') == 'ms' ? 'Sila hantar borang di bawah.' : 'Please submit the form below.';
+      }
 
       setState(() {
-        _messages.add(ChatMsg(role: 'ai', text: randomReply));
+        _messages.add(ChatMsg(role: 'ai', text: aiReply));
         _isThinking = false;
       });
       _scrollToBottom();
@@ -87,15 +99,36 @@ class _SmartFormPageState extends State<SmartFormPage> {
   void _toggleMic(AppState appState) {
     if (_isListening) {
       setState(() => _isListening = false);
-      _sendMessage(appState.translate('voiceSample'), true, appState);
+      _sendContextualVoiceSample(appState);
     } else {
       setState(() => _isListening = true);
       Future.delayed(const Duration(milliseconds: 2000), () {
         if (!mounted || !_isListening) return;
         setState(() => _isListening = false);
-        _sendMessage(appState.translate('voiceSample'), true, appState);
+        _sendContextualVoiceSample(appState);
       });
     }
+  }
+
+  void _sendContextualVoiceSample(AppState appState) {
+    String sample;
+    switch (appState.formStep) {
+      case 3:
+        sample = 'No 12, Jalan Tebrau, Johor Bahru';
+        break;
+      case 4:
+        sample = '012-3456789';
+        break;
+      case 5:
+        sample = 'Jalan Tebrau Branch';
+        break;
+      case 6:
+        sample = 'Tomorrow morning at 10 AM';
+        break;
+      default:
+        sample = 'Submit application';
+    }
+    _sendMessage(sample, true, appState);
   }
 
   @override
@@ -190,24 +223,123 @@ class _SmartFormPageState extends State<SmartFormPage> {
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              itemCount: _messages.length + (_isThinking ? 1 : 0),
+              padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20, top: 10),
+              itemCount: _messages.length + (_isThinking ? 1 : 0) + (currentStep >= _totalSteps ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index < _messages.length) {
                   return ChatBubble(message: _messages[index]);
-                } else {
+                }
+                if (index == _messages.length && _isThinking) {
                   return const ThinkingBubble();
                 }
+                if (currentStep >= _totalSteps && index == _messages.length + (_isThinking ? 1 : 0)) {
+                  return const FinalReviewCard();
+                }
+                return const SizedBox.shrink();
               },
             ),
           ),
-          // Chat input bar
-          ServiceChatBar(
-            
-            isListening: _isListening,
-            isThinking: _isThinking,
-            onSend: (text) => _sendMessage(text, false, appState),
-            onToggleMic: () => _toggleMic(appState),
+          // Chat input bar OR Submit Button
+          if (currentStep >= _totalSteps)
+            Padding(
+              padding: const EdgeInsets.only(left: 20, right: 20, bottom: 32, top: 12),
+              child: SizedBox(
+                width: double.infinity,
+                height: 60,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SuccessPage(
+                          title: appState.translate('formSuccessTitle') ?? 'Application Submitted',
+                          message: appState.translate('formSuccessMessage') ?? 'Your application has been successfully submitted and is under review.',
+                          icon: Icons.assignment_turned_in_rounded,
+                        ),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E40AF),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: Text(
+                    appState.translate('submitApplication') ?? 'Submit Application',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                  ),
+                ),
+              ),
+            )
+          else
+            ServiceChatBar(
+              isListening: _isListening,
+              isThinking: _isThinking,
+              onSend: (text) => _sendMessage(text, false, appState),
+              onToggleMic: () => _toggleMic(appState),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class FinalReviewCard extends StatelessWidget {
+  const FinalReviewCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFDBEAFE), width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 24),
+              SizedBox(width: 8),
+              Text(
+                'Application Review',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF1E293B)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildRow('Full Name', 'Ahmad bin Abdullah'),
+          _buildRow('IC Number', '570814-01-5432'),
+          _buildRow('Address', 'No 12, Jalan Tebrau, Johor Bahru'),
+          _buildRow('Contact', '012-3456789'),
+          _buildRow('Branch', 'Jalan Tebrau Branch'),
+          _buildRow('Appointment', 'Tomorrow morning at 10 AM'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF64748B)),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF0F172A)),
+            ),
           ),
         ],
       ),

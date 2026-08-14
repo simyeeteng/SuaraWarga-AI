@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/constants/constants.dart';
 import '../../../../core/services/app_state.dart';
-import '../../../../shared/widgets/badge_widget.dart';
 import '../../../../shared/widgets/ai_tag.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -194,7 +193,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     icon: Icon(_step > 1 ? Icons.arrow_back_rounded : Icons.close_rounded, color: Colors.white),
                     onPressed: _prevStep,
                     style: IconButton.styleFrom(
-                      backgroundColor: Colors.white.withOpacity(0.2),
+                      backgroundColor: Colors.white.withValues(alpha: 0.2),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
                   ),
@@ -228,7 +227,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       height: 6,
                       margin: EdgeInsets.only(right: index < 3 ? 8 : 0),
                       decoration: BoxDecoration(
-                        color: active ? Colors.white : Colors.white.withOpacity(0.25),
+                        color: active ? Colors.white : Colors.white.withValues(alpha: 0.25),
                         borderRadius: BorderRadius.circular(999),
                       ),
                     ),

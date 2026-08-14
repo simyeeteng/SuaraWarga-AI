@@ -62,16 +62,16 @@ class ChecklistItem extends StatelessWidget {
               ),
             ),
             Container(
-              width: 32,
-              height: 32,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 color: ready ? const Color(0xFF10B981) : const Color(0xFFF1F5F9), // green-500 or slate-100
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                ready ? Icons.check : Icons.close,
+                ready ? Icons.check_rounded : Icons.close_rounded,
                 color: ready ? Colors.white : const Color(0xFF94A3B8),
-                size: 18,
+                size: 24,
               ),
             )
           ],

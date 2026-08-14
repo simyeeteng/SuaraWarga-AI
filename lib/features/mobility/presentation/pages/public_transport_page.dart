@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/services/app_state.dart';
 import '../../../../shared/widgets/custom_header.dart';
 import '../../../../shared/widgets/chat_bubble.dart';
+import 'active_navigation_page.dart';
 import '../../../../shared/widgets/service_chat_bar.dart';
 import '../widgets/transport_card.dart';
 
@@ -146,7 +147,7 @@ class _PublicTransportPageState extends State<PublicTransportPage> {
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey[300]),
                             ),
-                            Container(color: Colors.black.withOpacity(0.35)),
+                            Container(color: Colors.black.withValues(alpha: 0.35)),
                             Positioned(
                               bottom: 12,
                               left: 12,
@@ -260,7 +261,7 @@ class _PublicTransportPageState extends State<PublicTransportPage> {
                                   ],
                                 ),
                               ));
-                            }).toList(),
+                            }),
                           ],
                         ),
                       ),
@@ -270,7 +271,16 @@ class _PublicTransportPageState extends State<PublicTransportPage> {
                         width: double.infinity,
                         height: 54,
                         child: ElevatedButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const ActiveNavigationPage(
+                                  routeIcon: Icons.directions_bus_rounded,
+                                ),
+                              ),
+                            );
+                          },
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [

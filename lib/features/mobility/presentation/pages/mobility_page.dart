@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../app/routes.dart';
-import '../../../../core/constants/constants.dart';
 import '../../../../core/services/app_state.dart';
 import '../../../../shared/widgets/ai_tag.dart';
 import '../widgets/weather_card.dart';
@@ -141,7 +140,7 @@ class _SmartMobilityPageState extends State<SmartMobilityPage> {
                       icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
                       onPressed: () => Navigator.pop(context),
                       style: IconButton.styleFrom(
-                        backgroundColor: Colors.white.withOpacity(0.2),
+                        backgroundColor: Colors.white.withValues(alpha: 0.2),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
                     ),
@@ -161,10 +160,10 @@ class _SmartMobilityPageState extends State<SmartMobilityPage> {
                 Container(
                   height: 56,
                   decoration: BoxDecoration(
-                    color: _isListening ? const Color(0xFFFEF2F2).withOpacity(0.2) : Colors.white,
+                    color: _isListening ? const Color(0xFFFEF2F2).withValues(alpha: 0.2) : Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: _isListening ? Colors.redAccent.withOpacity(0.5) : Colors.white,
+                      color: _isListening ? Colors.redAccent.withValues(alpha: 0.5) : Colors.white,
                       width: 2,
                     ),
                   ),
@@ -249,7 +248,7 @@ class _SmartMobilityPageState extends State<SmartMobilityPage> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
+                          color: Colors.black.withValues(alpha: 0.08),
                           blurRadius: 16,
                           offset: const Offset(0, 8),
                         )
@@ -394,35 +393,35 @@ class _SmartMobilityPageState extends State<SmartMobilityPage> {
                   ),
                   const SizedBox(height: 16),
                   // Weather grid
-                  Row(
+                  const Row(
                     children: [
                       Expanded(
                         child: WeatherCard(
                           icon: Icons.thermostat_rounded,
                           labelKey: 'tempLabel',
                           value: '33°C',
-                          color: const Color(0xFFEF4444),
-                          bg: const Color(0xFFFEE2E2),
+                          color: Color(0xFFEF4444),
+                          bg: Color(0xFFFEE2E2),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Expanded(
                         child: WeatherCard(
                           icon: Icons.water_drop_rounded,
                           labelKey: 'humidityLabel',
                           value: '78%',
-                          color: const Color(0xFF2563EB),
-                          bg: const Color(0xFFEFF6FF),
+                          color: Color(0xFF2563EB),
+                          bg: Color(0xFFEFF6FF),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Expanded(
                         child: WeatherCard(
                           icon: Icons.wb_sunny_rounded,
                           labelKey: 'uvIndexLabel',
                           value: '8 High',
-                          color: const Color(0xFFD97706),
-                          bg: const Color(0xFFFEF3C7),
+                          color: Color(0xFFD97706),
+                          bg: Color(0xFFFEF3C7),
                         ),
                       ),
                     ],
@@ -459,7 +458,7 @@ class _SmartMobilityPageState extends State<SmartMobilityPage> {
                               width: 54,
                               height: 54,
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: const Icon(Icons.directions_bus_rounded, color: Colors.white, size: 30),
@@ -494,7 +493,7 @@ class _SmartMobilityPageState extends State<SmartMobilityPage> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
+                            color: Colors.white.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Text(
@@ -608,52 +607,29 @@ class _SmartMobilityPageState extends State<SmartMobilityPage> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  // Routes action buttons launcher
+                  // Route Comparison Cards
                   Row(
                     children: [
                       Expanded(
-                        child: SizedBox(
-                          height: 80,
-                          child: ElevatedButton(
-                            onPressed: () => Navigator.pushNamed(context, AppRoutes.tropicalRoute),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF10B981), // green-500
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.alt_route_rounded, size: 24),
-                                const SizedBox(height: 4),
-                                Text(
-                                  appState.translate('aiRouteBtn'),
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ),
+                        child: _RouteCard(
+                          title: 'Fastest Route',
+                          time: '12 min',
+                          icon: Icons.directions_walk_rounded,
+                          color: const Color(0xFFEF4444), // Red for hot/uncomfortable
+                          stats: 'Hot • High UV • Low Shade',
+                          onTap: () {},
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: SizedBox(
-                          height: 80,
-                          child: ElevatedButton(
-                            onPressed: () => Navigator.pushNamed(context, AppRoutes.transitGuide),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2563EB), // blue-600
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.directions_bus_rounded, size: 24),
-                                const SizedBox(height: 4),
-                                Text(
-                                  appState.translate('busGuideBtn'),
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ),
+                        child: _RouteCard(
+                          title: 'Tropical Route',
+                          time: '16 min',
+                          icon: Icons.park_rounded,
+                          color: const Color(0xFF10B981), // Green for recommended/shaded
+                          stats: 'Cool • Shaded • Park Path',
+                          recommended: true,
+                          onTap: () => Navigator.pushNamed(context, AppRoutes.tropicalRoute),
                         ),
                       ),
                     ],
@@ -667,3 +643,114 @@ class _SmartMobilityPageState extends State<SmartMobilityPage> {
     );
   }
 }
+
+class _RouteCard extends StatelessWidget {
+  final String title;
+  final String time;
+  final IconData icon;
+  final Color color;
+  final String stats;
+  final bool recommended;
+  final VoidCallback onTap;
+
+  const _RouteCard({
+    required this.title,
+    required this.time,
+    required this.icon,
+    required this.color,
+    required this.stats,
+    this.recommended = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: recommended ? color : const Color(0xFFE2E8F0),
+            width: recommended ? 2.5 : 1.5,
+          ),
+          boxShadow: recommended
+              ? [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.1),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (recommended)
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.star_rounded, color: color, size: 14),
+                    const SizedBox(width: 4),
+                    Text(
+                      'AI Pick',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        color: color,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            Row(
+              children: [
+                Icon(icon, color: color, size: 28),
+                const Spacer(),
+                Text(
+                  time,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              stats,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF64748B),
+                height: 1.3,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

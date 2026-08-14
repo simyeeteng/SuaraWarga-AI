@@ -104,8 +104,8 @@ class _LoginPageState extends State<LoginPage> {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+                      color: Colors.white.withValues(alpha: 0.2),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.5),
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: const Icon(Icons.hearing_rounded, size: 44, color: Colors.white),

@@ -50,26 +50,43 @@ class _VoiceButtonState extends State<VoiceButton> with SingleTickerProviderStat
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: const Color(0xFF60A5FA).withOpacity(opacity),
-                      width: 2.0,
+                      color: const Color(0xFFD97706).withValues(alpha: opacity), // Warm Amber glow
+                      width: 3.0,
                     ),
                   ),
-                  transform: Matrix4.identity()..scale(scale),
+                  transform: Matrix4.diagonal3Values(scale, scale, 1.0),
                   transformAlignment: Alignment.center,
                 );
               },
             );
           }),
+          // Outer Glass Ring
+          Container(
+            width: 146,
+            height: 146,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: const Color(0xFFFDE68A).withValues(alpha: 0.3),
+                width: 1.5,
+              ),
+            ),
+          ),
           // Center Trigger
           Container(
             width: 130,
             height: 130,
             decoration: BoxDecoration(
-              color: const Color(0xFF2563EB),
+              gradient: const LinearGradient(
+                colors: [Color(0xFFD97706), Color(0xFFB45309)], // Amber gradient
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 4),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2563EB).withOpacity(0.4),
+                  color: const Color(0xFFD97706).withValues(alpha: 0.4),
                   blurRadius: 32,
                   offset: const Offset(0, 8),
                 )
@@ -78,7 +95,7 @@ class _VoiceButtonState extends State<VoiceButton> with SingleTickerProviderStat
             child: const Icon(
               Icons.mic_rounded,
               color: Colors.white,
-              size: 56,
+              size: 64,
             ),
           ),
         ],

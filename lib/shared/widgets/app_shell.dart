@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/app_state.dart';
 
@@ -36,6 +37,27 @@ class AppShell extends StatelessWidget {
 
     return Scaffold(
       body: body,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          HapticFeedback.mediumImpact();
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Emergency SOS'),
+              content: const Text('Initiating emergency protocol...'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
+              ],
+            ),
+          );
+        },
+        backgroundColor: const Color(0xFFDC2626), // Red
+        elevation: 4,
+        child: const Icon(Icons.sos_rounded, color: Colors.white, size: 28),
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -101,7 +123,10 @@ class AppShell extends StatelessWidget {
     final Color inactiveColor = appState.highContrast ? const Color(0xFF555555) : const Color(0xFF94A3B8);
 
     return InkWell(
-      onTap: () => appState.setSelectedTab(tabId),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        appState.setSelectedTab(tabId);
+      },
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
