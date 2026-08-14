@@ -40,17 +40,99 @@ class AppShell extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           HapticFeedback.mediumImpact();
-          showDialog(
+          showModalBottomSheet(
             context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text('Emergency SOS'),
-              content: const Text('Initiating emergency protocol...'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
+            backgroundColor: Colors.transparent,
+            isScrollControlled: true,
+            builder: (ctx) => Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: appState.highContrast ? Colors.black : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                border: appState.highContrast ? Border.all(color: Colors.white, width: 2) : null,
+              ),
+              child: SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: appState.highContrast ? Colors.white : Colors.grey[300],
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Icon(Icons.warning_rounded, size: 48, color: Color(0xFFDC2626)),
+                    const SizedBox(height: 16),
+                    Text(
+                      appState.translate('sosTitle'),
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        color: appState.highContrast ? Colors.white : const Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      appState.translate('sosDesc'),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: appState.highContrast ? Colors.white70 : const Color(0xFF64748B),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    // Option 1: Alert Emergency Contact
+                    _buildSOSOption(
+                      icon: Icons.contact_emergency_rounded,
+                      title: appState.translate('sosContact'),
+                      subtitle: appState.translate('sosContactDesc'),
+                      color: const Color(0xFF2563EB),
+                      appState: appState,
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Alert sent to Emergency Contact!')),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    // Option 2: Call 999
+                    _buildSOSOption(
+                      icon: Icons.phone_in_talk_rounded,
+                      title: appState.translate('sosCall'),
+                      subtitle: appState.translate('sosCallDesc'),
+                      color: const Color(0xFFDC2626),
+                      appState: appState,
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Calling 999...')),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        minimumSize: const Size(double.infinity, 56),
+                      ),
+                      child: Text(
+                        appState.translate('sosCancel'),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: appState.highContrast ? Colors.white : const Color(0xFF64748B),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           );
         },
@@ -104,6 +186,68 @@ class AppShell extends StatelessWidget {
               labelKey: 'navProfile',
               appState: appState,
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSOSOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required AppState appState,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: appState.highContrast ? Colors.black : color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: appState.highContrast ? color : color.withOpacity(0.2),
+            width: appState.highContrast ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: Colors.white, size: 28),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: appState.highContrast ? Colors.white : const Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: appState.highContrast ? Colors.white70 : const Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: appState.highContrast ? Colors.white : color),
           ],
         ),
       ),
