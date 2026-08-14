@@ -3,6 +3,11 @@ import 'package:provider/provider.dart';
 import '../../../../core/services/app_state.dart';
 import '../../../../shared/widgets/custom_header.dart';
 import '../../../../shared/widgets/ai_tag.dart';
+import '../../../government/presentation/pages/letter_interpreter_page.dart';
+import '../../../government/presentation/pages/smart_form_page.dart';
+import '../../../government/presentation/pages/document_checker_page.dart';
+import '../../../mobility/presentation/pages/public_transport_page.dart';
+import '../../../mobility/presentation/pages/tropical_route_page.dart';
 
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key});
@@ -140,7 +145,35 @@ class HistoryPage extends StatelessWidget {
                               return Column(
                                 children: [
                                   InkWell(
-                                    onTap: () {},
+                                    onTap: () {
+                                      Widget? targetPage;
+                                      final titleKey = item['titleKey'] as String;
+                                      
+                                      switch (titleKey) {
+                                        case 'histLetterInterpreter':
+                                          targetPage = const LetterInterpreterPage();
+                                          break;
+                                        case 'histFormAssistant':
+                                          targetPage = SmartFormPage();
+                                          break;
+                                        case 'histPublicTransport':
+                                          targetPage = PublicTransportPage();
+                                          break;
+                                        case 'histDocChecker':
+                                          targetPage = DocumentCheckerPage();
+                                          break;
+                                        case 'histTropicalRoute':
+                                          targetPage = TropicalRoutePage();
+                                          break;
+                                      }
+
+                                      if (targetPage != null) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (context) => targetPage!),
+                                        );
+                                      }
+                                    },
                                     child: Padding(
                                       padding: const EdgeInsets.all(16),
                                       child: Row(
