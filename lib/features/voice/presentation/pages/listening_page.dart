@@ -121,271 +121,285 @@ class _ListeningPageState extends State<ListeningPage> with SingleTickerProvider
             ),
             // Main animation content
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Pulse Mic Widget
-                    Center(
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          if (_phase == 'listening') ...[
-                            ...List.generate(3, (i) {
-                              return AnimatedBuilder(
-                                animation: _pulsingController,
-                                builder: (context, child) {
-                                  final double animationVal = _pulsingController.value;
-                                  final double progress = (animationVal + (i * 0.33)) % 1.0;
-                                  final double scale = 1.0 + (progress * 0.8);
-                                  final double opacity = (1.0 - progress) * 0.4;
-                                  return Container(
-                                    width: 110,
-                                    height: 110,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: const Color(0xFF60A5FA).withOpacity(opacity),
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    transform: Matrix4.identity()..scale(scale),
-                                    transformAlignment: Alignment.center,
-                                  );
-                                },
-                              );
-                            })
-                          ],
-                          Container(
-                            width: 110,
-                            height: 110,
-                            decoration: BoxDecoration(
-                              color: _phase == 'done' ? const Color(0xFF10B981) : const Color(0xFF2563EB), // green-500 or blue-600
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: (_phase == 'done' ? const Color(0xFF10B981) : const Color(0xFF2563EB))
-                                      .withOpacity(0.4),
-                                  blurRadius: 24,
-                                  offset: const Offset(0, 4),
-                                )
-                              ],
-                            ),
-                            child: Icon(
-                              _phase == 'done' ? Icons.check_rounded : Icons.mic_rounded,
-                              color: Colors.white,
-                              size: 48,
-                            ),
-                          )
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 48),
-                    // Sound waves
-                    if (_phase == 'listening') const _AudioWaves() else const SizedBox(height: 48),
-                    const SizedBox(height: 32),
-                    // Transcription display card
-                    Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: Colors.white.withOpacity(0.15)),
-                      ),
-                      padding: const EdgeInsets.all(20),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: _phase == 'listening'
-                                      ? const Color(0xFFEF4444)
-                                      : _phase == 'transcribing'
-                                          ? const Color(0xFFF59E0B)
-                                          : const Color(0xFF10B981),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                appState.translate(
-                                  _phase == 'listening'
-                                      ? 'listening'
-                                      : _phase == 'transcribing'
-                                          ? 'recognising'
-                                          : 'understood',
-                                ).toUpperCase(),
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 1.0,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const AITag(label: 'ASR'),
-                            ],
-                          ),
                           const SizedBox(height: 12),
-                          Text(
-                            _transcript.isEmpty ? '—' : _transcript,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    // Dialect detection card
-                    if (_phase == 'transcribing' || _phase == 'done')
-                      Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withOpacity(0.15)),
-                        ),
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const AITag(label: 'Dialect AI'),
-                            const SizedBox(height: 8),
-                            Text(
-                              appState.translate('detectedDialect').toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white60,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              intent.detectedLang,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                                color: Color(0xFFFDE68A), // amber-200
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    const SizedBox(height: 12),
-                    // NLP card
-                    if (_phase == 'done')
-                      Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withOpacity(0.15)),
-                        ),
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Row(
+                          // Pulse Mic Widget
+                          Center(
+                            child: Stack(
+                              alignment: Alignment.center,
                               children: [
-                                AITag(label: 'NLP'),
-                                SizedBox(width: 6),
-                                AITag(label: 'Intent'),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              appState.translate('aiUnderstanding').toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white60,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Row(
-                              children: [
+                                if (_phase == 'listening') ...[
+                                  ...List.generate(3, (i) {
+                                    return AnimatedBuilder(
+                                      animation: _pulsingController,
+                                      builder: (context, child) {
+                                        final double animationVal = _pulsingController.value;
+                                        final double progress = (animationVal + (i * 0.33)) % 1.0;
+                                        final double scale = 1.0 + (progress * 0.8);
+                                        final double opacity = (1.0 - progress) * 0.4;
+                                        return Container(
+                                          width: 110,
+                                          height: 110,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: const Color(0xFF60A5FA).withOpacity(opacity),
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                          transform: Matrix4.identity()..scale(scale),
+                                          transformAlignment: Alignment.center,
+                                        );
+                                      },
+                                    );
+                                  })
+                                ],
                                 Container(
-                                  width: 36,
-                                  height: 36,
+                                  width: 110,
+                                  height: 110,
                                   decoration: BoxDecoration(
-                                    color: intent.serviceColor.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Icon(
-                                    intent.serviceIcon == 'edit_document'
-                                        ? Icons.edit_document
-                                        : intent.serviceIcon == 'directions_bus'
-                                            ? Icons.directions_bus_rounded
-                                            : intent.serviceIcon == 'checklist_rtl'
-                                                ? Icons.checklist_rtl_rounded
-                                                : Icons.description_rounded,
-                                    color: intent.serviceColor,
-                                    size: 18,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        intent.service,
-                                        style: const TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF86EFAC), // green-300
-                                        ),
-                                      ),
-                                      Text(
-                                        intent.serviceDesc,
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.white54,
-                                        ),
-                                      ),
+                                    color: _phase == 'done' ? const Color(0xFF10B981) : const Color(0xFF2563EB), // green-500 or blue-600
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: (_phase == 'done' ? const Color(0xFF10B981) : const Color(0xFF2563EB))
+                                            .withOpacity(0.4),
+                                        blurRadius: 24,
+                                        offset: const Offset(0, 4),
+                                      )
                                     ],
                                   ),
+                                  child: Icon(
+                                    _phase == 'done' ? Icons.check_rounded : Icons.mic_rounded,
+                                    color: Colors.white,
+                                    size: 48,
+                                  ),
                                 )
                               ],
-                            )
-                          ],
-                        ),
+                            ),
+                          ),
+                          const SizedBox(height: 48),
+                          // Sound waves
+                          if (_phase == 'listening') const _AudioWaves() else const SizedBox(height: 48),
+                          const SizedBox(height: 32),
+                          // Transcription display card
+                          Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(color: Colors.white.withOpacity(0.15)),
+                            ),
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: _phase == 'listening'
+                                            ? const Color(0xFFEF4444)
+                                            : _phase == 'transcribing'
+                                                ? const Color(0xFFF59E0B)
+                                                : const Color(0xFF10B981),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      child: Text(
+                                        appState.translate(
+                                          _phase == 'listening'
+                                              ? 'listening'
+                                              : _phase == 'transcribing'
+                                                  ? 'recognising'
+                                                  : 'understood',
+                                        ).toUpperCase(),
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 1.0,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const AITag(label: 'ASR'),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _transcript.isEmpty ? '—' : _transcript,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          // Dialect detection card
+                          if (_phase == 'transcribing' || _phase == 'done')
+                            Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(color: Colors.white.withOpacity(0.15)),
+                              ),
+                              padding: const EdgeInsets.all(20),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const AITag(label: 'Dialect AI'),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    appState.translate('detectedDialect').toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Colors.white60,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    intent.detectedLang,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                      color: Color(0xFFFDE68A), // amber-200
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          const SizedBox(height: 12),
+                          // NLP card
+                          if (_phase == 'done')
+                            Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(color: Colors.white.withOpacity(0.15)),
+                              ),
+                              padding: const EdgeInsets.all(20),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Row(
+                                    children: [
+                                      AITag(label: 'NLP'),
+                                      SizedBox(width: 6),
+                                      AITag(label: 'Intent'),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    appState.translate('aiUnderstanding').toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Colors.white60,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 36,
+                                        height: 36,
+                                        decoration: BoxDecoration(
+                                          color: intent.serviceColor.withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Icon(
+                                          intent.serviceIcon == 'edit_document'
+                                              ? Icons.edit_document
+                                              : intent.serviceIcon == 'directions_bus'
+                                                  ? Icons.directions_bus_rounded
+                                                  : intent.serviceIcon == 'checklist_rtl'
+                                                      ? Icons.checklist_rtl_rounded
+                                                      : Icons.description_rounded,
+                                          color: intent.serviceColor,
+                                          size: 18,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              intent.service,
+                                              style: const TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF86EFAC), // green-300
+                                              ),
+                                            ),
+                                            Text(
+                                              intent.serviceDesc,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.white54,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    ],
+                                  )
+                                ],
+                              ),
+                            ),
+                          const SizedBox(height: 12),
+                        ],
                       ),
-                  ],
-                ),
+                    ),
+                  );
+                },
               ),
             ),
             // Bottom Action triggers
             if (_phase == 'done')
-              Padding(
-                padding: const EdgeInsets.only(left: 20, right: 20, bottom: 40),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 60,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushReplacementNamed(context, AppRoutes.processing);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF10B981), // green-500
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.auto_awesome_rounded, size: 24),
-                        const SizedBox(width: 8),
-                        Text(appState.translate('processingWithAI')),
-                      ],
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 20, right: 20, bottom: 24),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 60,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pushReplacementNamed(context, AppRoutes.processing);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981), // green-500
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.auto_awesome_rounded, size: 24),
+                          const SizedBox(width: 8),
+                          Text(appState.translate('processingWithAI')),
+                        ],
+                      ),
                     ),
                   ),
                 ),
