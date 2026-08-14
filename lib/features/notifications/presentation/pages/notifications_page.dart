@@ -3,6 +3,10 @@ import 'package:provider/provider.dart';
 import '../../../../core/services/app_state.dart';
 import '../../../../shared/widgets/custom_header.dart';
 import '../../../../shared/widgets/ai_tag.dart';
+import '../../government/presentation/pages/smart_form_page.dart';
+import '../../government/presentation/pages/document_checker_page.dart';
+import '../../mobility/presentation/pages/public_transport_page.dart';
+import '../../mobility/presentation/pages/tropical_route_page.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -117,21 +121,46 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 ...filteredNotifications.map((n) {
                   final isNew = n['isNew'] as bool;
                   final isUrgent = n['urgent'] as bool;
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    decoration: BoxDecoration(
-                      color: isNew ? const Color(0xFFF0F9FF) : Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isUrgent
-                            ? const Color(0xFFFCA5A5)
-                            : isNew
-                                ? const Color(0xFFBFDBFE)
-                                : const Color(0xFFEFF6FF),
-                        width: isUrgent ? 2 : 1.5,
+                  return GestureDetector(
+                    onTap: () {
+                      Widget? targetPage;
+                      switch (n['titleKey'] as String) {
+                        case 'notifIcExpiry':
+                          targetPage = DocumentCheckerPage();
+                          break;
+                        case 'notifNewRoute':
+                        case 'notifCommunity':
+                          targetPage = TropicalRoutePage();
+                          break;
+                        case 'notifBusAlert':
+                          targetPage = PublicTransportPage();
+                          break;
+                        case 'notifTip':
+                          targetPage = SmartFormPage();
+                          break;
+                      }
+                      if (targetPage != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => targetPage!),
+                        );
+                      }
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      decoration: BoxDecoration(
+                        color: isNew ? const Color(0xFFF0F9FF) : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isUrgent
+                              ? const Color(0xFFFCA5A5)
+                              : isNew
+                                  ? const Color(0xFFBFDBFE)
+                                  : const Color(0xFFEFF6FF),
+                          width: isUrgent ? 2 : 1.5,
+                        ),
                       ),
-                    ),
-                    child: Padding(
+                      child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
