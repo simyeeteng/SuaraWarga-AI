@@ -3,10 +3,10 @@ import 'package:provider/provider.dart';
 import '../../../../core/services/app_state.dart';
 import '../../../../shared/widgets/custom_header.dart';
 import '../../../../shared/widgets/ai_tag.dart';
-import '../../government/presentation/pages/smart_form_page.dart';
-import '../../government/presentation/pages/document_checker_page.dart';
-import '../../mobility/presentation/pages/public_transport_page.dart';
-import '../../mobility/presentation/pages/tropical_route_page.dart';
+import '../../../government/presentation/pages/smart_form_page.dart';
+import '../../../government/presentation/pages/document_checker_page.dart';
+import '../../../mobility/presentation/pages/public_transport_page.dart';
+import '../../../mobility/presentation/pages/tropical_route_page.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -250,10 +250,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
                         ],
                       ),
                     ),
-                  );
-                }),
-                const SizedBox(height: 16),
-                // AI Alert Settings card
+                  ),
+                );
+              }).toList(),
+              const SizedBox(height: 16),
+              // AI Alert Settings card
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
