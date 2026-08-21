@@ -40,7 +40,16 @@ class SuaraWargaApp extends StatelessWidget {
     return MaterialApp(
       title: 'SuaraWarga AI',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.getTheme(largeText: appState.largeText, highContrast: appState.highContrast),
+      theme: AppTheme.getTheme(highContrast: appState.highContrast),
+      builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+        return MediaQuery(
+          data: mediaQuery.copyWith(
+            textScaler: TextScaler.linear(appState.fontScale),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       initialRoute: appState.isLoggedIn ? AppRoutes.home : AppRoutes.login,
       routes: {
         AppRoutes.login: (_) => const LoginPage(),

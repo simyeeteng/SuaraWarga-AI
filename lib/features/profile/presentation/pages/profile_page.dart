@@ -25,7 +25,12 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       builder: (context) {
         return Padding(
-          padding: const EdgeInsets.only(left: 24, right: 24, top: 12, bottom: 40),
+          padding: const EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 12,
+            bottom: 40,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -45,18 +50,31 @@ class _ProfilePageState extends State<ProfilePage> {
                   color: Color(0xFFFEE2E2), // bg-red-100
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 36),
+                child: const Icon(
+                  Icons.logout_rounded,
+                  color: Color(0xFFEF4444),
+                  size: 36,
+                ),
               ),
               const SizedBox(height: 16),
               Text(
                 appState.translate('signOutTitle'),
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF0F172A),
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 appState.translate('signOutDesc'),
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), fontWeight: FontWeight.w500, height: 1.45),
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w500,
+                  height: 1.45,
+                ),
               ),
               const SizedBox(height: 16),
               // User Info
@@ -69,12 +87,20 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_rounded, color: Color(0xFFD97706), size: 20),
+                    const Icon(
+                      Icons.info_rounded,
+                      color: Color(0xFFD97706),
+                      size: 20,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         '${appState.translate('signedInAs')} ${appState.activeUser.name}',
-                        style: const TextStyle(color: Color(0xFF92400E), fontSize: 13, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Color(0xFF92400E),
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
@@ -89,12 +115,21 @@ class _ProfilePageState extends State<ProfilePage> {
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(context),
                         style: OutlinedButton.styleFrom(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          side: const BorderSide(color: Color(0xFFCBD5E1), width: 2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          side: const BorderSide(
+                            color: Color(0xFFCBD5E1),
+                            width: 2,
+                          ),
                         ),
                         child: Text(
                           appState.translate('cancel'),
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF475569)),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Color(0xFF475569),
+                          ),
                         ),
                       ),
                     ),
@@ -107,7 +142,11 @@ class _ProfilePageState extends State<ProfilePage> {
                         onPressed: () {
                           Navigator.pop(context);
                           appState.logout();
-                          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            AppRoutes.login,
+                            (route) => false,
+                          );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFEF4444), // red-500
@@ -117,7 +156,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                 ],
-              )
+              ),
             ],
           ),
         );
@@ -140,9 +179,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       body: Column(
         children: [
-          CustomHeader(
-            title: appState.translate('profileTitle'),
-          ),
+          CustomHeader(title: appState.translate('profileTitle')),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.only(left: 20, right: 20, bottom: 40),
@@ -164,9 +201,16 @@ class _ProfilePageState extends State<ProfilePage> {
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.3),
+                            width: 2,
+                          ),
                         ),
-                        child: const Icon(Icons.person_rounded, color: Colors.white, size: 40),
+                        child: const Icon(
+                          Icons.person_rounded,
+                          color: Colors.white,
+                          size: 40,
+                        ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -194,12 +238,15 @@ class _ProfilePageState extends State<ProfilePage> {
                               children: [
                                 AITag(label: 'AI Profile'),
                                 SizedBox(width: 6),
-                                BadgeWidget(label: 'Senior', color: BadgeColor.orange),
+                                BadgeWidget(
+                                  label: 'Senior',
+                                  color: BadgeColor.orange,
+                                ),
                               ],
                             ),
                           ],
                         ),
-                      )
+                      ),
                     ],
                   ),
                 ),
@@ -209,7 +256,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: const Color(0xFFEFF6FF), width: 1.5),
+                    border: Border.all(
+                      color: const Color(0xFFEFF6FF),
+                      width: 1.5,
+                    ),
                   ),
                   padding: const EdgeInsets.all(20),
                   child: Column(
@@ -217,11 +267,19 @@ class _ProfilePageState extends State<ProfilePage> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.language_rounded, color: Color(0xFF2563EB), size: 20),
+                          const Icon(
+                            Icons.language_rounded,
+                            color: Color(0xFF2563EB),
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             appState.translate('langSection'),
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0F172A),
+                            ),
                           ),
                         ],
                       ),
@@ -229,18 +287,23 @@ class _ProfilePageState extends State<ProfilePage> {
                       // UI display settings
                       Text(
                         appState.translate('appLangLabel'),
-                        style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                          childAspectRatio: 2.3,
-                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                              childAspectRatio: 2.3,
+                            ),
                         itemCount: AppConstants.APP_LANGS.length,
                         itemBuilder: (context, index) {
                           final lang = AppConstants.APP_LANGS[index];
@@ -249,29 +312,40 @@ class _ProfilePageState extends State<ProfilePage> {
                             onTap: () => appState.setCurrentLanguage(lang.id),
                             child: Container(
                               decoration: BoxDecoration(
-                                color: isSel ? const Color(0xFF2563EB) : Colors.white,
+                                color: isSel
+                                    ? const Color(0xFF2563EB)
+                                    : Colors.white,
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: isSel ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
+                                  color: isSel
+                                      ? const Color(0xFF2563EB)
+                                      : const Color(0xFFE2E8F0),
                                   width: 2,
                                 ),
                               ),
                               padding: const EdgeInsets.all(8),
                               child: Row(
                                 children: [
-                                  Text(lang.flag, style: const TextStyle(fontSize: 20)),
+                                  Text(
+                                    lang.flag,
+                                    style: const TextStyle(fontSize: 20),
+                                  ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         Text(
                                           lang.native,
                                           style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w900,
-                                            color: isSel ? Colors.white : const Color(0xFF1E293B),
+                                            color: isSel
+                                                ? Colors.white
+                                                : const Color(0xFF1E293B),
                                             height: 1.1,
                                           ),
                                         ),
@@ -279,13 +353,15 @@ class _ProfilePageState extends State<ProfilePage> {
                                           lang.label,
                                           style: TextStyle(
                                             fontSize: 10,
-                                            color: isSel ? const Color(0xFFBFDBFE) : const Color(0xFF94A3B8),
+                                            color: isSel
+                                                ? const Color(0xFFBFDBFE)
+                                                : const Color(0xFF94A3B8),
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
                                       ],
                                     ),
-                                  )
+                                  ),
                                 ],
                               ),
                             ),
@@ -296,22 +372,30 @@ class _ProfilePageState extends State<ProfilePage> {
                       // Voice configuration settings
                       Text(
                         appState.translate('voiceLangLabel'),
-                        style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       Text(
                         appState.translate('voiceLangHint'),
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF94A3B8),
+                        ),
                       ),
                       const SizedBox(height: 8),
                       GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                          childAspectRatio: 2.3,
-                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                              childAspectRatio: 2.3,
+                            ),
                         itemCount: AppConstants.VOICE_LANGS.length,
                         itemBuilder: (context, index) {
                           final vl = AppConstants.VOICE_LANGS[index];
@@ -320,29 +404,43 @@ class _ProfilePageState extends State<ProfilePage> {
                             onTap: () => appState.setVoiceLanguage(vl.id),
                             child: Container(
                               decoration: BoxDecoration(
-                                color: isSel ? const Color(0xFF10B981) : Colors.white,
+                                color: isSel
+                                    ? const Color(0xFF10B981)
+                                    : Colors.white,
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: isSel ? const Color(0xFF10B981) : const Color(0xFFE2E8F0),
+                                  color: isSel
+                                      ? const Color(0xFF10B981)
+                                      : const Color(0xFFE2E8F0),
                                   width: 2,
                                 ),
                               ),
                               padding: const EdgeInsets.all(8),
                               child: Row(
                                 children: [
-                                  Icon(vl.icon, color: isSel ? Colors.white : const Color(0xFF94A3B8), size: 18),
+                                  Icon(
+                                    vl.icon,
+                                    color: isSel
+                                        ? Colors.white
+                                        : const Color(0xFF94A3B8),
+                                    size: 18,
+                                  ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         Text(
                                           vl.label,
                                           style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w900,
-                                            color: isSel ? Colors.white : const Color(0xFF1E293B),
+                                            color: isSel
+                                                ? Colors.white
+                                                : const Color(0xFF1E293B),
                                             height: 1.1,
                                           ),
                                         ),
@@ -350,13 +448,15 @@ class _ProfilePageState extends State<ProfilePage> {
                                           vl.sub,
                                           style: TextStyle(
                                             fontSize: 10,
-                                            color: isSel ? const Color(0xFFD1FAE5) : const Color(0xFF94A3B8),
+                                            color: isSel
+                                                ? const Color(0xFFD1FAE5)
+                                                : const Color(0xFF94A3B8),
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
                                       ],
                                     ),
-                                  )
+                                  ),
                                 ],
                               ),
                             ),
@@ -378,12 +478,16 @@ class _ProfilePageState extends State<ProfilePage> {
                             Expanded(
                               child: Text(
                                 appState.translate('dialectAiHint'),
-                                style: const TextStyle(color: Color(0xFF1D4ED8), fontSize: 13, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  color: Color(0xFF1D4ED8),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      )
+                      ),
                     ],
                   ),
                 ),
@@ -394,7 +498,9 @@ class _ProfilePageState extends State<ProfilePage> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: appState.highContrast ? Colors.black : const Color(0xFFEFF6FF),
+                      color: appState.highContrast
+                          ? Colors.black
+                          : const Color(0xFFEFF6FF),
                       width: appState.highContrast ? 2.5 : 1.5,
                     ),
                   ),
@@ -404,55 +510,147 @@ class _ProfilePageState extends State<ProfilePage> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.accessibility_new_rounded, color: Color(0xFF8B5CF6), size: 20),
+                          const Icon(
+                            Icons.accessibility_new_rounded,
+                            color: Color(0xFF8B5CF6),
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             appState.translate('accessibility'),
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0F172A),
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 20),
-                      // Large text switch
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      // Text size slider
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  appState.translate('largeText'),
-                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      appState.translate('largeText'),
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      appState.translate('largeTextDesc'),
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  appState.largeText ? appState.translate('largeTextActive') : appState.translate('largeTextDesc'),
-                                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                                )
-                              ],
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEFF6FF),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: const Color(0xFFBFDBFE),
+                                  ),
+                                ),
+                                child: Text(
+                                  appState.fontScaleLabel,
+                                  style: const TextStyle(
+                                    color: Color(0xFF1D4ED8),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          SliderTheme(
+                            data: SliderTheme.of(context).copyWith(
+                              activeTrackColor: const Color(0xFF2563EB),
+                              inactiveTrackColor: const Color(0xFFDBEAFE),
+                              thumbColor: const Color(0xFF2563EB),
+                              overlayColor: const Color(0x332563EB),
+                              valueIndicatorColor: const Color(0xFF2563EB),
+                              valueIndicatorTextStyle: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            child: Slider(
+                              value: appState.fontScale,
+                              min: AppState.minFontScale,
+                              max: AppState.maxFontScale,
+                              divisions: 9,
+                              label: appState.fontScaleLabel,
+                              onChanged: appState.setFontScale,
                             ),
                           ),
-                          Switch(
-                            value: appState.largeText,
-                            onChanged: (_) => appState.toggleLargeText(),
-                          )
+                          const Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Small',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF94A3B8),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'Default',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF94A3B8),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'Large',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF94A3B8),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: const Color(0xFFBFDBFE),
+                              ),
+                            ),
+                            child: Text(
+                              appState.translate('largeTextPreview'),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1D4ED8),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
-                      if (appState.largeText) ...[
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEFF6FF),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFBFDBFE)),
-                          ),
-                          child: Text(
-                            appState.translate('largeTextPreview'),
-                            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
-                          ),
-                        )
-                      ],
                       const SizedBox(height: 16),
                       // High contrast switch
                       Row(
@@ -464,19 +662,27 @@ class _ProfilePageState extends State<ProfilePage> {
                               children: [
                                 Text(
                                   appState.translate('highContrast'),
-                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 Text(
-                                  appState.highContrast ? appState.translate('highContrastActive') : appState.translate('highContrastDesc'),
-                                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                                )
+                                  appState.highContrast
+                                      ? appState.translate('highContrastActive')
+                                      : appState.translate('highContrastDesc'),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF64748B),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
                           Switch(
                             value: appState.highContrast,
                             onChanged: (_) => appState.toggleHighContrast(),
-                          )
+                          ),
                         ],
                       ),
                       if (appState.highContrast) ...[
@@ -489,19 +695,30 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                           child: Text(
                             appState.translate('highContrastPreview'),
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
-                        )
+                        ),
                       ],
                       const SizedBox(height: 20),
                       // Voice Speed selector
                       Text(
                         appState.translate('voiceSpeed'),
-                        style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       Text(
                         appState.translate('voiceSpeedHint'),
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF94A3B8),
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -511,21 +728,35 @@ class _ProfilePageState extends State<ProfilePage> {
                             child: InkWell(
                               onTap: () => appState.setVoiceSpeed(rate),
                               child: Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 4),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: isSel ? const Color(0xFF2563EB) : const Color(0xFFF8FAFC),
+                                  color: isSel
+                                      ? const Color(0xFF2563EB)
+                                      : const Color(0xFFF8FAFC),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: isSel ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
+                                    color: isSel
+                                        ? const Color(0xFF2563EB)
+                                        : const Color(0xFFE2E8F0),
                                     width: 2,
                                   ),
                                 ),
                                 child: Column(
                                   children: [
                                     Icon(
-                                      rate < 1 ? Icons.slow_motion_video_rounded : rate == 1 ? Icons.play_circle_fill_rounded : Icons.fast_forward_rounded,
-                                      color: isSel ? Colors.white : const Color(0xFF64748B),
+                                      rate < 1
+                                          ? Icons.slow_motion_video_rounded
+                                          : rate == 1
+                                          ? Icons.play_circle_fill_rounded
+                                          : Icons.fast_forward_rounded,
+                                      color: isSel
+                                          ? Colors.white
+                                          : const Color(0xFF64748B),
                                       size: 20,
                                     ),
                                     const SizedBox(height: 4),
@@ -534,15 +765,25 @@ class _ProfilePageState extends State<ProfilePage> {
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w900,
-                                        color: isSel ? Colors.white : const Color(0xFF475569),
+                                        color: isSel
+                                            ? Colors.white
+                                            : const Color(0xFF475569),
                                       ),
                                     ),
                                     Text(
-                                      appState.translate(rate < 1 ? 'speedSlow' : rate == 1 ? 'speedNormal' : 'speedFast'),
+                                      appState.translate(
+                                        rate < 1
+                                            ? 'speedSlow'
+                                            : rate == 1
+                                            ? 'speedNormal'
+                                            : 'speedFast',
+                                      ),
                                       style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
-                                        color: isSel ? const Color(0xFFBFDBFE) : const Color(0xFF94A3B8),
+                                        color: isSel
+                                            ? const Color(0xFFBFDBFE)
+                                            : const Color(0xFF94A3B8),
                                       ),
                                     ),
                                   ],
@@ -562,15 +803,23 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.volume_up_rounded, color: Color(0xFF2563EB), size: 18),
+                            const Icon(
+                              Icons.volume_up_rounded,
+                              color: Color(0xFF2563EB),
+                              size: 18,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               '${appState.translate('currentSpeed')}: ${appState.voiceSpeed}x',
-                              style: const TextStyle(color: Color(0xFF1D4ED8), fontSize: 13, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                color: Color(0xFF1D4ED8),
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),
-                      )
+                      ),
                     ],
                   ),
                 ),
@@ -580,7 +829,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   decoration: BoxDecoration(
                     color: const Color(0xFFFEF2F2), // bg-red-50
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: const Color(0xFFFCA5A5), width: 1.5),
+                    border: Border.all(
+                      color: const Color(0xFFFCA5A5),
+                      width: 1.5,
+                    ),
                   ),
                   padding: const EdgeInsets.all(20),
                   child: Column(
@@ -588,11 +840,19 @@ class _ProfilePageState extends State<ProfilePage> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.emergency_rounded, color: Color(0xFFEF4444), size: 20),
+                          const Icon(
+                            Icons.emergency_rounded,
+                            color: Color(0xFFEF4444),
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             appState.translate('emergencyContact'),
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF991B1B)),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF991B1B),
+                            ),
                           ),
                         ],
                       ),
@@ -607,7 +867,10 @@ class _ProfilePageState extends State<ProfilePage> {
                                 color: const Color(0xFFFEE2E2),
                                 borderRadius: BorderRadius.circular(16),
                               ),
-                              child: const Icon(Icons.person_rounded, color: Color(0xFFEF4444)),
+                              child: const Icon(
+                                Icons.person_rounded,
+                                color: Color(0xFFEF4444),
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -616,20 +879,28 @@ class _ProfilePageState extends State<ProfilePage> {
                                 children: [
                                   Text(
                                     user.emergencyContact!.name,
-                                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF1E293B)),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 18,
+                                      color: Color(0xFF1E293B),
+                                    ),
                                   ),
                                   Text(
                                     user.emergencyContact!.phone,
-                                    style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Color(0xFF64748B),
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                   const SizedBox(height: 4),
                                   BadgeWidget(
                                     label: user.emergencyContact!.relationship,
                                     color: BadgeColor.orange,
-                                  )
+                                  ),
                                 ],
                               ),
-                            )
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -637,7 +908,8 @@ class _ProfilePageState extends State<ProfilePage> {
                           width: double.infinity,
                           height: 52,
                           child: ElevatedButton(
-                            onPressed: () => _callContact(user.emergencyContact!.phone),
+                            onPressed: () =>
+                                _callContact(user.emergencyContact!.phone),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFEF4444),
                             ),
@@ -646,22 +918,30 @@ class _ProfilePageState extends State<ProfilePage> {
                               children: [
                                 const Icon(Icons.phone_rounded, size: 20),
                                 const SizedBox(width: 8),
-                                Text('${appState.translate('callLabel')} ${user.emergencyContact!.name}'),
+                                Text(
+                                  '${appState.translate('callLabel')} ${user.emergencyContact!.name}',
+                                ),
                               ],
                             ),
                           ),
-                        )
+                        ),
                       ] else ...[
                         Text(
                           appState.translate('noEmergencyContact'),
-                          style: const TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            color: Color(0xFFEF4444),
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           appState.translate('addEcHint'),
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF64748B),
+                          ),
                         ),
-                      ]
+                      ],
                     ],
                   ),
                 ),
@@ -672,12 +952,19 @@ class _ProfilePageState extends State<ProfilePage> {
                     children: [
                       Text(
                         'SuaraWarga AI v1.0.0 · Track T5: AI for Public Services',
-                        style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8), fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF94A3B8),
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       SizedBox(height: 2),
                       Text(
                         'Powered by ASR · Dialect AI · NLP · LLM · Computer Vision',
-                        style: TextStyle(fontSize: 10, color: Color(0xFFCBD5E1)),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Color(0xFFCBD5E1),
+                        ),
                       ),
                     ],
                   ),
@@ -693,8 +980,13 @@ class _ProfilePageState extends State<ProfilePage> {
                       backgroundColor: const Color(0xFFFEF2F2),
                       foregroundColor: const Color(0xFFEF4444),
                       elevation: 0,
-                      side: const BorderSide(color: Color(0xFFFCA5A5), width: 2),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      side: const BorderSide(
+                        color: Color(0xFFFCA5A5),
+                        width: 2,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -704,14 +996,14 @@ class _ProfilePageState extends State<ProfilePage> {
                         Text(
                           appState.translate('signOut'),
                           style: const TextStyle(fontWeight: FontWeight.bold),
-                        )
+                        ),
                       ],
                     ),
                   ),
                 ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );

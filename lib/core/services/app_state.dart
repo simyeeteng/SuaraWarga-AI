@@ -34,16 +34,26 @@ class UserProfile {
 
 class AppState extends ChangeNotifier {
   // Accessibility
-  bool _largeText = false;
+  static const double minFontScale = 0.9;
+  static const double maxFontScale = 1.35;
+
+  double _fontScale = 1.0;
   bool _highContrast = false;
   double _voiceSpeed = 1.0;
 
-  bool get largeText => _largeText;
+  double get fontScale => _fontScale;
+  bool get largeText => _fontScale > 1.0;
   bool get highContrast => _highContrast;
   double get voiceSpeed => _voiceSpeed;
+  String get fontScaleLabel => '${(_fontScale * 100).round()}%';
 
   void toggleLargeText() {
-    _largeText = !_largeText;
+    _fontScale = largeText ? 1.0 : 1.2;
+    notifyListeners();
+  }
+
+  void setFontScale(double scale) {
+    _fontScale = scale.clamp(minFontScale, maxFontScale);
     notifyListeners();
   }
 
@@ -168,6 +178,7 @@ class AppState extends ChangeNotifier {
       notifyListeners();
     }
   }
+
   void resetFormStep() {
     _formStep = 3;
     notifyListeners();
@@ -179,7 +190,11 @@ class AppState extends ChangeNotifier {
     {'nameKey': 'docUtilityBill', 'ready': true, 'icon': Icons.receipt_long},
     {'nameKey': 'docPassportPhoto', 'ready': false, 'icon': Icons.photo_camera},
     {'nameKey': 'docBirthCert', 'ready': true, 'icon': Icons.description},
-    {'nameKey': 'docBankStatement', 'ready': false, 'icon': Icons.account_balance},
+    {
+      'nameKey': 'docBankStatement',
+      'ready': false,
+      'icon': Icons.account_balance,
+    },
   ];
   List<Map<String, dynamic>> get checklistDocs => _checklistDocs;
   void toggleDocReady(int index) {
@@ -212,6 +227,7 @@ class AppState extends ChangeNotifier {
       notifyListeners();
     }
   }
+
   void markAllNotificationsAsRead(int totalCount) {
     _readNotifications.clear();
     for (int i = 0; i < totalCount; i++) {
