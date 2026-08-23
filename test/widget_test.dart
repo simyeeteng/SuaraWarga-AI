@@ -11,27 +11,23 @@ import 'package:provider/provider.dart';
 
 import 'package:suarawarga_ai/app/app.dart';
 import 'package:suarawarga_ai/core/services/app_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('App boots up smoke test', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final appState = AppState();
+    await appState.initLocalStorage(); // avoid errors with local storage
+
     // Build our app and trigger a frame.
     await tester.pumpWidget(
-      ChangeNotifierProvider(
-        create: (_) => AppState(),
+      ChangeNotifierProvider.value(
+        value: appState,
         child: const SuaraWargaApp(),
       ),
     );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verify that the MaterialApp initializes correctly.
+    expect(find.byType(MaterialApp), findsOneWidget);
   });
 }

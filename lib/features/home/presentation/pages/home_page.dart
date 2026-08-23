@@ -183,11 +183,19 @@ class HomePage extends StatelessWidget {
                     child: Column(
                       children: [
                         VoiceButton(
-                          onTap: () => _startListening(
-                            context,
-                            appState,
-                            AppConstants.VOICE_INTENTS[0],
-                          ),
+                          onTap: () {
+                            final vLang = appState.voiceLanguage.toLowerCase();
+                            VoiceIntent intent = AppConstants.VOICE_INTENTS[0];
+                            for (final i in AppConstants.VOICE_INTENTS) {
+                              if (i.detectedLang.toLowerCase() == vLang ||
+                                  (vLang.contains('chinese') && i.detectedLang == 'Mandarin') ||
+                                  (vLang.contains('mandarin') && i.detectedLang == 'Mandarin')) {
+                                intent = i;
+                                break;
+                              }
+                            }
+                            _startListening(context, appState, intent);
+                          },
                         ),
                         const SizedBox(height: 12),
                         Text(

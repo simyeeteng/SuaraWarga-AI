@@ -15,4 +15,5 @@ class AppRoutes {
   static const String history = '/history';
   static const String notifications = '/notifications';
   static const String profile = '/profile';
+  static const String rulesAdmin = '/rules-admin';
 }

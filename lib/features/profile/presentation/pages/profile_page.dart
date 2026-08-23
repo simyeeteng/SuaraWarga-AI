@@ -945,6 +945,33 @@ class _ProfilePageState extends State<ProfilePage> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 16),
+                // Rules Settings Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pushNamed(context, '/rules-admin'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF2563EB),
+                      side: const BorderSide(color: Color(0xFFBFDBFE), width: 2),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.settings_suggest_rounded, size: 22),
+                        const SizedBox(width: 8),
+                        Text(
+                          appState.translate('adminSettings'),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 24),
                 // Version details
                 const Center(
