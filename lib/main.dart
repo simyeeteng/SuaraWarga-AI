@@ -3,12 +3,14 @@ import 'package:provider/provider.dart';
 import 'app/app.dart';
 import 'core/services/app_state.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final appState = AppState();
+  await appState.initLocalStorage();
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AppState()),
+        ChangeNotifierProvider<AppState>.value(value: appState),
       ],
       child: const SuaraWargaApp(),
     ),

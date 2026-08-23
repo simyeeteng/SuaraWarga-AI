@@ -1,6 +1,12 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../../../core/services/app_state.dart';
+import '../../../../core/services/routing_service.dart';
+import '../../../../core/services/weather_service.dart';
+import '../../../../core/services/transit_service.dart';
 import '../../../../shared/widgets/custom_header.dart';
 import '../../../../shared/widgets/ai_tag.dart';
 import '../widgets/route_card.dart';
@@ -13,58 +19,334 @@ class TropicalRoutePage extends StatefulWidget {
 }
 
 class _TropicalRoutePageState extends State<TropicalRoutePage> {
-  int _selectedRoute = 2; // Default to 'Covered'
+  final TextEditingController _apiKeyController = TextEditingController();
+  final TextEditingController _originController = TextEditingController(text: 'My Location');
+  final TextEditingController _destController = TextEditingController(text: 'JB City Square');
+
+  bool _showSettings = false;
+  bool _showTransitItinerary = false;
+  bool _mapExpanded = false;
+
+  // GPS state
+  GoogleMapController? _mapController;
+  bool _acquiringGps = false;
+  bool _gpsGranted = false;
+
+  // Current route coords (defaults = JB demo)
+  double _startLat = 1.4576;
+  double _startLng = 103.7618;
+  double _endLat   = 1.4628;
+  double _endLng   = 103.7465;
+
+  // Segment type → Google Maps polyline colour
+  static const Map<SegmentType, Color> _segmentColors = {
+    SegmentType.covered: Color(0xFF10B981),   // green
+    SegmentType.shaded:  Color(0xFF2563EB),   // blue
+    SegmentType.exposed: Color(0xFFEF4444),   // red
+    SegmentType.unknown: Color(0xFF94A3B8),   // grey
+  };
+
+  // ─── Lifecycle ─────────────────────────────────────────────────────────────
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final appState = Provider.of<AppState>(context, listen: false);
+      _apiKeyController.text = appState.openWeatherApiKey;
+      _tryAcquireGps(appState);
+    });
+  }
+
+  @override
+  void dispose() {
+    _apiKeyController.dispose();
+    _originController.dispose();
+    _destController.dispose();
+    _mapController?.dispose();
+    super.dispose();
+  }
+
+  // ─── GPS acquisition ────────────────────────────────────────────────────────
+
+  Future<void> _tryAcquireGps(AppState appState) async {
+    setState(() => _acquiringGps = true);
+    try {
+      LocationPermission perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
+        setState(() { _acquiringGps = false; _gpsGranted = false; });
+        appState.calculateTropicalRoutes(
+          startLat: _startLat, startLng: _startLng,
+          endLat: _endLat, endLng: _endLng,
+        );
+        return;
+      }
+
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      setState(() {
+        _startLat = pos.latitude;
+        _startLng = pos.longitude;
+        _gpsGranted = true;
+        _acquiringGps = false;
+        _originController.text = 'My Location (GPS)';
+      });
+    } catch (e) {
+      setState(() { _acquiringGps = false; _gpsGranted = false; });
+    }
+
+    appState.calculateTropicalRoutes(
+      startLat: _startLat, startLng: _startLng,
+      endLat: _endLat, endLng: _endLng,
+    );
+  }
+
+  // ─── Map helpers ────────────────────────────────────────────────────────────
+
+  /// Build Google Maps polylines from route segments
+  Set<Polyline> _buildPolylines(RouteOption route) {
+    final polylines = <Polyline>{};
+    for (int i = 0; i < route.segments.length; i++) {
+      final seg = route.segments[i];
+      final color = _segmentColors[seg.type] ?? const Color(0xFF94A3B8);
+      polylines.add(Polyline(
+        polylineId: PolylineId('seg_$i'),
+        points: [LatLng(seg.startLat, seg.startLng), LatLng(seg.endLat, seg.endLng)],
+        color: color,
+        width: 6,
+        patterns: seg.type == SegmentType.exposed
+            ? [PatternItem.dash(12), PatternItem.gap(6)]  // dashed for exposed sun
+            : [],
+      ));
+    }
+    return polylines;
+  }
+
+  /// Build origin + destination markers
+  Set<Marker> _buildMarkers(RouteOption route) {
+    if (route.segments.isEmpty) return {};
+    final first = route.segments.first;
+    final last  = route.segments.last;
+    return {
+      Marker(
+        markerId: const MarkerId('origin'),
+        position: LatLng(first.startLat, first.startLng),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        infoWindow: const InfoWindow(title: 'Start', snippet: 'Your origin'),
+      ),
+      Marker(
+        markerId: const MarkerId('dest'),
+        position: LatLng(last.endLat, last.endLng),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        infoWindow: const InfoWindow(title: 'Destination'),
+      ),
+    };
+  }
+
+  /// Animate camera to fit the entire route
+  void _fitRoute(RouteOption route) {
+    if (_mapController == null || route.segments.isEmpty) return;
+    double minLat = double.infinity, maxLat = -double.infinity;
+    double minLng = double.infinity, maxLng = -double.infinity;
+    for (final seg in route.segments) {
+      minLat = math.min(minLat, math.min(seg.startLat, seg.endLat));
+      maxLat = math.max(maxLat, math.max(seg.startLat, seg.endLat));
+      minLng = math.min(minLng, math.min(seg.startLng, seg.endLng));
+      maxLng = math.max(maxLng, math.max(seg.startLng, seg.endLng));
+    }
+    _mapController!.animateCamera(
+      CameraUpdate.newLatLngBounds(
+        LatLngBounds(
+          southwest: LatLng(minLat - 0.002, minLng - 0.002),
+          northeast: LatLng(maxLat + 0.002, maxLng + 0.002),
+        ),
+        56.0, // padding in px
+      ),
+    );
+  }
+
+  // ─── Dialogs ────────────────────────────────────────────────────────────────
+
+  void _showFormulaDialog(BuildContext context, AppState appState) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
+        title: Row(
+          children: [
+            const Icon(Icons.info_rounded, color: Color(0xFF10B981), size: 24),
+            const SizedBox(width: 10),
+            Text(appState.translate('comfortFormulaTitle'),
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+          ],
+        ),
+        content: Scrollbar(
+          child: SingleChildScrollView(
+            child: Text(appState.translate('comfortFormulaDesc'),
+                style: const TextStyle(fontSize: 14, color: Color(0xFF334155), height: 1.5)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(appState.translate('continueBtn'),
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLocationPicker(BuildContext context, AppState appState, bool isOrigin) {
+    final ctrl = TextEditingController(
+      text: isOrigin ? _originController.text : _destController.text,
+    );
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(isOrigin ? 'Set Origin' : 'Set Destination',
+            style: const TextStyle(fontWeight: FontWeight.w900)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: isOrigin ? 'e.g. Johor Bahru City Square' : 'e.g. Aeon Tebrau',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (isOrigin)
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _tryAcquireGps(appState);
+                },
+                icon: const Icon(Icons.my_location_rounded),
+                label: const Text('Use GPS Location'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF10B981),
+                  side: const BorderSide(color: Color(0xFF10B981)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            const SizedBox(height: 8),
+            const Text(
+              'Note: In this demo, known Johor Bahru landmarks use preset coordinates. '
+              'Full geocoding via Google Places API can be wired here.',
+              style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8), height: 1.4),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final name = ctrl.text.trim();
+              if (name.isEmpty) { Navigator.pop(context); return; }
+              Navigator.pop(context);
+
+              // Resolve well-known JB landmarks to coordinates
+              final resolved = _resolveJbLandmark(name);
+              setState(() {
+                if (isOrigin) {
+                  _originController.text = resolved.$1;
+                  _startLat = resolved.$2;
+                  _startLng = resolved.$3;
+                } else {
+                  _destController.text = resolved.$1;
+                  _endLat = resolved.$2;
+                  _endLng = resolved.$3;
+                }
+              });
+              appState.calculateTropicalRoutes(
+                startLat: _startLat, startLng: _startLng,
+                endLat: _endLat,   endLng: _endLng,
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2563EB),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Set', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Resolves a handful of well-known JB landmarks to lat/lng.
+  /// Returns (displayName, lat, lng).
+  (String, double, double) _resolveJbLandmark(String input) {
+    const landmarks = {
+      'jb city square': ('JB City Square', 1.4576, 103.7618),
+      'aeon tebrau': ('AEON Tebrau City', 1.5088, 103.7745),
+      'utm johor': ('UTM Johor', 1.5577, 103.6374),
+      'johor premium outlets': ('Johor Premium Outlets', 1.5889, 103.6184),
+      'iskandar puteri': ('Iskandar Puteri', 1.4268, 103.6378),
+      'ksl city': ('KSL City Mall', 1.4660, 103.7482),
+      'bukit indah': ('Bukit Indah', 1.5317, 103.7530),
+      'jb sentral': ('JB Sentral', 1.4628, 103.7465),
+      'larkin': ('Larkin Terminal', 1.4852, 103.7512),
+      'paradigm mall': ('Paradigm Mall JB', 1.5339, 103.7472),
+      'medini': ('Medini Nusajaya', 1.4246, 103.6295),
+    };
+    final key = input.toLowerCase().trim();
+    for (final entry in landmarks.entries) {
+      if (key.contains(entry.key) || entry.key.contains(key)) {
+        return entry.value;
+      }
+    }
+    // Default: keep current coords, use typed name
+    return (input, _endLat, _endLng);
+  }
+
+  // ─── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final appState = Provider.of<AppState>(context);
+    final bool loading = appState.loadingRoutes;
+    final List<RouteOption> options = appState.routes;
+    final WeatherData? weather = appState.weather;
+    final BusItinerary? transit = appState.busItinerary;
 
-    final routes = [
-      {
-        'labelKey': 'routeFastest',
-        'descKey': 'routeFastestDesc',
-        'icon': Icons.bolt_rounded,
-        'time': '28 min',
-        'shade': '18%',
-        'temp': '34°C',
-        'comfort': 42,
-        'color': const Color(0xFF2563EB),
-        'comfortColor': const Color(0xFFEF4444)
-      },
-      {
-        'labelKey': 'routeCoolest',
-        'descKey': 'routeCoolestDesc',
-        'icon': Icons.ac_unit_rounded,
-        'time': '38 min',
-        'shade': '72%',
-        'temp': '29°C',
-        'comfort': 81,
-        'color': const Color(0xFF8B5CF6),
-        'comfortColor': const Color(0xFF10B981)
-      },
-      {
-        'labelKey': 'routeCovered',
-        'descKey': 'routeCoveredDesc',
-        'icon': Icons.umbrella_rounded,
-        'time': '34 min',
-        'shade': '85%',
-        'temp': '30°C',
-        'comfort': 78,
-        'color': const Color(0xFFD97706),
-        'comfortColor': const Color(0xFF10B981)
-      },
-      {
-        'labelKey': 'routeBalanced',
-        'descKey': 'routeBalancedDesc',
-        'icon': Icons.scale_rounded,
-        'time': '31 min',
-        'shade': '55%',
-        'temp': '31°C',
-        'comfort': 68,
-        'color': const Color(0xFF10B981),
-        'comfortColor': const Color(0xFFF59E0B)
-      },
-    ];
+    int currentRouteIndex = 3;
+    if (options.isNotEmpty) {
+      if (appState.selectedRouteIndex >= 0 && appState.selectedRouteIndex < options.length) {
+        currentRouteIndex = appState.selectedRouteIndex;
+      } else {
+        final matchIdx = options.indexWhere((o) => o.id == 'balanced');
+        if (matchIdx != -1) currentRouteIndex = matchIdx;
+      }
+    }
+
+    final RouteOption? selectedRoute = options.isNotEmpty ? options[currentRouteIndex] : null;
+
+    final routeCardColors = {
+      'fastest':  const Color(0xFF2563EB),
+      'coolest':  const Color(0xFF8B5CF6),
+      'covered':  const Color(0xFFD97706),
+      'balanced': const Color(0xFF10B981),
+    };
+    final routeCardIcons = {
+      'fastest':  Icons.bolt_rounded,
+      'coolest':  Icons.ac_unit_rounded,
+      'covered':  Icons.umbrella_rounded,
+      'balanced': Icons.scale_rounded,
+    };
 
     return Scaffold(
       body: Column(
@@ -75,143 +357,718 @@ class _TropicalRoutePageState extends State<TropicalRoutePage> {
             onBack: () => Navigator.pop(context),
           ),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.only(left: 20, right: 20, bottom: 32),
-              children: [
-                // Tech tags
-                const Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    AITag(label: 'Weather API'),
-                    AITag(label: 'Computer Vision'),
-                    AITag(label: 'Decision Engine'),
-                    AITag(label: 'LLM'),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                // Map placeholder
-                Container(
-                  height: 192,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE2E8F0),
-                    borderRadius: BorderRadius.circular(24),
-                    border: appState.highContrast ? Border.all(color: Colors.black, width: 2.0) : null,
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Stack(
-                    children: [
-                      // Simulated aerial map background
-                      Image.network(
-                        'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=600&h=300&fit=crop&auto=format',
-                        width: double.infinity,
-                        height: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey[300]),
-                      ),
-                      Container(color: Colors.black.withOpacity(0.2)),
-                      // Floating label
-                      Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.route_rounded, color: Color(0xFF10B981), size: 20),
-                              const SizedBox(width: 8),
-                              Text(
-                                appState.translate('routesCalculated'),
-                                style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0F172A), fontSize: 13),
-                              )
-                            ],
-                          ),
-                        ),
-                      ),
-                      // Dot markers
-                      Positioned(
-                        top: 24,
-                        left: 24,
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF10B981),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: const Icon(Icons.my_location_rounded, color: Colors.white, size: 16),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 24,
-                        right: 24,
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEF4444),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: const Icon(Icons.local_hospital_rounded, color: Colors.white, size: 16),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Routes listing
-                Column(
-                  children: List.generate(routes.length, (index) {
-                    final r = routes[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: RouteCard(
-                        labelKey: r['labelKey'] as String,
-                        descKey: r['descKey'] as String,
-                        icon: r['icon'] as IconData,
-                        time: r['time'] as String,
-                        shade: r['shade'] as String,
-                        temp: r['temp'] as String,
-                        comfort: r['comfort'] as int,
-                        themeColor: r['color'] as Color,
-                        comfortColor: r['comfortColor'] as Color,
-                        isSelected: _selectedRoute == index,
-                        onTap: () => setState(() => _selectedRoute = index),
-                      ),
-                    );
-                  }),
-                ),
-                const SizedBox(height: 12),
-                // Action start button
-                SizedBox(
-                  width: double.infinity,
-                  height: 60,
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF059669),
-                    ),
-                    child: Row(
+            child: loading
+                ? const Center(
+                    child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.navigation_rounded, size: 24),
-                        const SizedBox(width: 8),
+                        CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
+                        ),
+                        SizedBox(height: 16),
                         Text(
-                          '${appState.translate('startRouteBtn')} ${appState.translate(routes[_selectedRoute]['labelKey'] as String)}',
-                          style: const TextStyle(fontWeight: FontWeight.w900),
+                          'Calculating optimal paths & querying OSM Overpass shelter data...',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: () => appState.calculateTropicalRoutes(
+                      startLat: _startLat, startLng: _startLng,
+                      endLat: _endLat, endLng: _endLng,
+                    ),
+                    color: const Color(0xFF10B981),
+                    child: ListView(
+                      padding: const EdgeInsets.only(left: 20, right: 20, bottom: 32, top: 12),
+                      children: [
+
+                        // ── API Tags + Settings toggle ────────────────────────
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: [
+                                AITag(label: 'OSRM Route Engine'),
+                                AITag(label: 'OSM Overpass API'),
+                                AITag(label: 'Decision Engine'),
+                              ],
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                _showSettings ? Icons.settings_rounded : Icons.settings_outlined,
+                                color: const Color(0xFF64748B),
+                                size: 20,
+                              ),
+                              onPressed: () => setState(() => _showSettings = !_showSettings),
+                            ),
+                          ],
+                        ),
+
+                        // ── Collapsible API key settings ─────────────────────
+                        if (_showSettings) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  appState.translate('weatherApiKey'),
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF475569)),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Container(
+                                        height: 44,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: const Color(0xFFCBD5E1)),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                                        child: TextField(
+                                          controller: _apiKeyController,
+                                          decoration: const InputDecoration(
+                                            hintText: 'Enter OpenWeatherMap API Key',
+                                            hintStyle: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                                            border: InputBorder.none,
+                                          ),
+                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    ElevatedButton(
+                                      onPressed: () async {
+                                        await appState.setOpenWeatherApiKey(_apiKeyController.text);
+                                        appState.calculateTropicalRoutes(
+                                          startLat: _startLat, startLng: _startLng,
+                                          endLat: _endLat, endLng: _endLng,
+                                        );
+                                        setState(() => _showSettings = false);
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('API Key Saved. Re-calculating routes...')),
+                                          );
+                                        }
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF10B981),
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      ),
+                                      child: Text(appState.translate('saveKey'),
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'Note: If no API key is specified, the system queries in fallback demo mode using JB default metrics.',
+                                  style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+
+                        // ── Origin / Destination picker ───────────────────────
+                        _buildLocationPicker(appState),
+                        const SizedBox(height: 12),
+
+                        // ── REAL GPS MAP ──────────────────────────────────────
+                        _buildGpsMap(selectedRoute, appState, routeCardIcons, routeCardColors),
+                        const SizedBox(height: 12),
+
+                        // ── Weather source banner ─────────────────────────────
+                        if (weather != null) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF0FDFA),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFFCCFBF1)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.wb_sunny_rounded, color: Color(0xFF0D9488), size: 18),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${appState.translate('weatherSourceLabel')}: ${weather.source}',
+                                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF0D9488)),
+                                      ),
+                                      Text(
+                                        '${appState.translate('lastUpdatedLabel')}: ${weather.lastUpdated.hour.toString().padLeft(2, '0')}:${weather.lastUpdated.minute.toString().padLeft(2, '0')} (${DateTime.now().difference(weather.lastUpdated).inMinutes} min ago)',
+                                        style: const TextStyle(fontSize: 9, color: Color(0xFF14B8A6)),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // ── Walk vs Bus recommendation ────────────────────────
+                        if (transit != null && selectedRoute != null && weather != null) ...[
+                          _buildWalkBusRecommendationCard(appState, selectedRoute, transit, weather),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // ── Route cards ───────────────────────────────────────
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${options.length} ${appState.translate('routesCalculated')}',
+                              style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0F172A), fontSize: 16),
+                            ),
+                            GestureDetector(
+                              onTap: () => _showFormulaDialog(context, appState),
+                              child: Row(
+                                children: [
+                                  Text(appState.translate('howIsCalculated'),
+                                      style: const TextStyle(color: Color(0xFF059669), fontSize: 12, fontWeight: FontWeight.bold)),
+                                  const SizedBox(width: 4),
+                                  const Icon(Icons.help_outline_rounded, color: Color(0xFF059669), size: 14),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        Column(
+                          children: List.generate(options.length, (index) {
+                            final opt = options[index];
+                            final String formattedShade = opt.shadePercentage != null
+                                ? '${(opt.shadePercentage! * 100).round()}%'
+                                : 'Unknown';
+
+                            bool isDuplicate = false;
+                            String duplicateReason = '';
+                            for (int i = 0; i < index; i++) {
+                              final prev = options[i];
+                              if (prev.duration.inSeconds == opt.duration.inSeconds &&
+                                  prev.distance == opt.distance &&
+                                  prev.shadePercentage == opt.shadePercentage &&
+                                  prev.coveredPercentage == opt.coveredPercentage) {
+                                isDuplicate = true;
+                                final pLabel = _routeLabel(prev.name, appState);
+                                final cLabel = _routeLabel(opt.name, appState);
+                                duplicateReason = '$cLabel is also the $pLabel route today.';
+                                break;
+                              }
+                            }
+
+                            final Color color = routeCardColors[opt.id] ?? const Color(0xFF10B981);
+                            Color comfortColor = const Color(0xFFEF4444);
+                            if (opt.comfortScore >= 75) comfortColor = const Color(0xFF10B981);
+                            else if (opt.comfortScore >= 50) comfortColor = const Color(0xFFF59E0B);
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  RouteCard(
+                                    labelKey: opt.id == 'fastest' ? 'routeFastest' : opt.id == 'coolest' ? 'routeCoolest' : opt.id == 'covered' ? 'routeCovered' : 'routeBalanced',
+                                    descKey: opt.id == 'fastest' ? 'routeFastestDesc' : opt.id == 'coolest' ? 'routeCoolestDesc' : opt.id == 'covered' ? 'routeCoveredDesc' : 'routeBalancedDesc',
+                                    icon: routeCardIcons[opt.id] ?? Icons.route_rounded,
+                                    time: '${opt.duration.inMinutes} min',
+                                    shade: formattedShade,
+                                    temp: weather != null ? '${weather.temp.round()}°C' : '33°C',
+                                    comfort: opt.comfortScore,
+                                    themeColor: color,
+                                    comfortColor: comfortColor,
+                                    isSelected: currentRouteIndex == index,
+                                    onTap: () {
+                                      appState.setSelectedRouteIndex(index);
+                                      // Animate map to newly selected route
+                                      Future.delayed(const Duration(milliseconds: 200), () {
+                                        _fitRoute(opt);
+                                      });
+                                    },
+                                  ),
+                                  if (isDuplicate) ...[
+                                    const SizedBox(height: 4),
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 8),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.info_outline_rounded, size: 13, color: Color(0xFF94A3B8)),
+                                          const SizedBox(width: 4),
+                                          Expanded(
+                                            child: Text(
+                                              duplicateReason,
+                                              style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8), fontStyle: FontStyle.italic),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            );
+                          }),
                         ),
                       ],
                     ),
                   ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── GPS Map Widget ─────────────────────────────────────────────────────────
+
+  Widget _buildGpsMap(
+    RouteOption? selectedRoute,
+    AppState appState,
+    Map<String, IconData> routeCardIcons,
+    Map<String, Color> routeCardColors,
+  ) {
+    final double mapHeight = _mapExpanded ? 420 : 240;
+
+    final Set<Polyline> polylines =
+        selectedRoute != null ? _buildPolylines(selectedRoute) : {};
+    final Set<Marker> markers =
+        selectedRoute != null ? _buildMarkers(selectedRoute) : {};
+
+    final CameraPosition initialCamera = CameraPosition(
+      target: LatLng(_startLat, _startLng),
+      zoom: 15.0,
+    );
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      height: mapHeight,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: appState.highContrast ? Colors.black : const Color(0xFFE2E8F0),
+          width: appState.highContrast ? 2.5 : 1.5,
+        ),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 4)),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          // ── Google Map ──────────────────────────────────────────────────
+          GoogleMap(
+            initialCameraPosition: initialCamera,
+            mapType: MapType.normal,
+            myLocationEnabled: _gpsGranted,
+            myLocationButtonEnabled: false,
+            zoomControlsEnabled: false,
+            compassEnabled: true,
+            tiltGesturesEnabled: false,
+            polylines: polylines,
+            markers: markers,
+            onMapCreated: (controller) {
+              _mapController = controller;
+              // Fit route immediately once map is ready
+              if (selectedRoute != null) {
+                Future.delayed(const Duration(milliseconds: 400), () => _fitRoute(selectedRoute));
+              }
+            },
+          ),
+
+          // ── Top-left: Selected route label ──────────────────────────────
+          if (selectedRoute != null)
+            Positioned(
+              top: 12,
+              left: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [BoxShadow(color: Color(0x1A000000), blurRadius: 6)],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      routeCardIcons[selectedRoute.id] ?? Icons.route_rounded,
+                      color: routeCardColors[selectedRoute.id] ?? const Color(0xFF10B981),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${_routeLabel(selectedRoute.name, appState)} Path',
+                      style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0F172A), fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // ── GPS acquiring indicator ─────────────────────────────────────
+          if (_acquiringGps)
+            Positioned(
+              top: 12,
+              right: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 12, height: 12,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    ),
+                    SizedBox(width: 6),
+                    Text('Getting GPS...', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ),
+
+          // ── Bottom: map controls bar ────────────────────────────────────
+          Positioned(
+            bottom: 0, left: 0, right: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.95),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Legend
+                  Wrap(
+                    spacing: 10,
+                    children: [
+                      _buildLegendItem(const Color(0xFF10B981), 'Covered'),
+                      _buildLegendItem(const Color(0xFF2563EB), 'Shaded'),
+                      _buildLegendItem(const Color(0xFFEF4444), 'Exposed'),
+                      _buildLegendItem(const Color(0xFF94A3B8), 'Unknown'),
+                    ],
+                  ),
+                  // Controls
+                  Row(
+                    children: [
+                      // My location
+                      GestureDetector(
+                        onTap: () => _tryAcquireGps(appState),
+                        child: Container(
+                          width: 32, height: 32,
+                          decoration: BoxDecoration(
+                            color: _gpsGranted ? const Color(0xFF10B981) : const Color(0xFFF1F5F9),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Icon(
+                            Icons.my_location_rounded,
+                            size: 16,
+                            color: _gpsGranted ? Colors.white : const Color(0xFF64748B),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Fit route button
+                      GestureDetector(
+                        onTap: () { if (selectedRoute != null) _fitRoute(selectedRoute); },
+                        child: Container(
+                          width: 32, height: 32,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2563EB),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFFBFDBFE)),
+                          ),
+                          child: const Icon(Icons.fit_screen_rounded, size: 16, color: Colors.white),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Expand / collapse
+                      GestureDetector(
+                        onTap: () => setState(() => _mapExpanded = !_mapExpanded),
+                        child: Container(
+                          width: 32, height: 32,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Icon(
+                            _mapExpanded ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+                            size: 16,
+                            color: const Color(0xFF475569),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLocationPicker(AppState appState) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 8)],
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        children: [
+          // Origin
+          GestureDetector(
+            onTap: () => _showLocationPicker(context, appState, true),
+            child: Row(
+              children: [
+                Container(
+                  width: 32, height: 32,
+                  decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
+                  child: const Icon(Icons.circle, color: Colors.white, size: 12),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _originController.text,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF1E293B)),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                _acquiringGps
+                    ? const SizedBox(
+                        width: 14, height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)),
+                      )
+                    : const Icon(Icons.edit_rounded, size: 16, color: Color(0xFF94A3B8)),
+              ],
+            ),
+          ),
+          // Vertical connector line
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 14),
+            child: Container(height: 20, width: 2, color: const Color(0xFFE2E8F0)),
+          ),
+          // Destination
+          GestureDetector(
+            onTap: () => _showLocationPicker(context, appState, false),
+            child: Row(
+              children: [
+                Container(
+                  width: 32, height: 32,
+                  decoration: const BoxDecoration(color: Color(0xFFEF4444), shape: BoxShape.circle),
+                  child: const Icon(Icons.location_on_rounded, color: Colors.white, size: 18),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _destController.text,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF1E293B)),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const Icon(Icons.edit_rounded, size: 16, color: Color(0xFF94A3B8)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegendItem(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 12, height: 4, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+      ],
+    );
+  }
+
+  String _routeLabel(String name, AppState appState) {
+    switch (name) {
+      case 'Fastest': return appState.translate('routeFastest');
+      case 'Coolest': return appState.translate('routeCoolest');
+      case 'Covered': return appState.translate('routeCovered');
+      default: return appState.translate('routeBalanced');
+    }
+  }
+
+  // ─── Walk vs Bus card (unchanged from original) ─────────────────────────────
+
+  Widget _buildWalkBusRecommendationCard(
+    AppState appState,
+    RouteOption selectedRoute,
+    BusItinerary transit,
+    WeatherData weather,
+  ) {
+    // BusItinerary is a single-route object; use it directly
+    final transitRoute = transit;
+
+    final bool tooHot = weather.temp >= 34;
+    final bool tooHumid = weather.humidity >= 80;
+    final bool longWalk = selectedRoute.duration.inMinutes > 15;
+    final bool poorShade = (selectedRoute.shadePercentage ?? 0.0) < 0.3;
+
+    final bool recommendBus = (tooHot || tooHumid) && (longWalk || poorShade);
+
+    String reasonText;
+    if (recommendBus) {
+      reasonText = 'Conditions today are ${tooHot ? "very hot (${weather.temp.round()}°C)" : ""}${tooHot && tooHumid ? " and " : ""}${tooHumid ? "very humid (${weather.humidity.round()}%)" : ""}. ';
+      if (longWalk) reasonText += 'The walk is ${selectedRoute.duration.inMinutes} min which is tiring in this heat. ';
+      if (poorShade) reasonText += 'Shade coverage along this route is low (${((selectedRoute.shadePercentage ?? 0) * 100).round()}%). ';
+      reasonText += 'Taking bus ${transitRoute.busLine} is recommended for comfort.';
+    } else {
+      reasonText = 'Walking is fine today. Temperature is ${weather.temp.round()}°C with ${weather.humidity.round()}% humidity — within comfortable range. ';
+      if (!longWalk) reasonText += 'The walk is only ${selectedRoute.duration.inMinutes} min. ';
+      if (!poorShade) reasonText += 'Good shade coverage (${((selectedRoute.shadePercentage ?? 0) * 100).round()}%) makes the journey comfortable.';
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: recommendBus ? const Color(0xFFFEF2F2) : const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: recommendBus ? const Color(0xFFFCA5A5) : const Color(0xFFA7F3D0)),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                recommendBus ? Icons.directions_bus_rounded : Icons.directions_walk_rounded,
+                color: recommendBus ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                size: 22,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                appState.translate('aiRecommendation'),
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: recommendBus ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const AITag(label: 'data.gov.my GTFS'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            reasonText,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: recommendBus ? const Color(0xFF7F1D1D) : const Color(0xFF065F46),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 12),
+          InkWell(
+            onTap: () => setState(() => _showTransitItinerary = !_showTransitItinerary),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  appState.translate('busItinerary'),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                    color: recommendBus ? const Color(0xFF991B1B) : const Color(0xFF047857),
+                  ),
+                ),
+                Icon(
+                  _showTransitItinerary ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                  color: recommendBus ? const Color(0xFF991B1B) : const Color(0xFF047857),
+                  size: 20,
                 ),
               ],
             ),
-          )
+          ),
+          if (_showTransitItinerary) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Line: ${transitRoute.busLine}',
+                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF334155))),
+                      Text('Fare: ${transitRoute.fare}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF64748B))),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Stop: ${transitRoute.stopName} (${transitRoute.stopCode}) · Arriving in ${transitRoute.arrivalMinutes} min (${transitRoute.stopsLeft} stops left)',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+                  ),
+                  const Divider(height: 16),
+                  ...List.generate(transitRoute.steps.length, (idx) {
+                    final step = transitRoute.steps[idx];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            step.isWalk ? Icons.directions_walk_rounded : Icons.directions_bus_rounded,
+                            size: 16,
+                            color: const Color(0xFF64748B),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '${step.instruction} (${step.duration.inMinutes} min, ${step.distance}m)',
+                              style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

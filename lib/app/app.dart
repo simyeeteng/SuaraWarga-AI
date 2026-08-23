@@ -17,6 +17,7 @@ import '../features/government/presentation/pages/government_services_page.dart'
 import '../features/government/presentation/pages/letter_interpreter_page.dart';
 import '../features/government/presentation/pages/smart_form_page.dart';
 import '../features/government/presentation/pages/document_checker_page.dart';
+import '../features/government/presentation/pages/rules_admin_page.dart';
 
 // Mobility
 import '../features/mobility/presentation/pages/mobility_page.dart';
@@ -59,6 +60,7 @@ class SuaraWargaApp extends StatelessWidget {
         AppRoutes.letterInterpreter: (_) => const LetterInterpreterPage(),
         AppRoutes.formAssistant: (_) => const SmartFormPage(),
         AppRoutes.docChecker: (_) => const DocumentCheckerPage(),
+        AppRoutes.rulesAdmin: (_) => const RulesAdminPage(),
         AppRoutes.smartMobility: (_) => const SmartMobilityPage(),
         AppRoutes.tropicalRoute: (_) => const TropicalRoutePage(),
         AppRoutes.transitGuide: (_) => const PublicTransportPage(),

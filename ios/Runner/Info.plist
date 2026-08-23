@@ -66,5 +66,13 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- Location access for GPS routing -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>SuaraWarga needs your location to calculate heat-aware walking routes near you.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>SuaraWarga needs your location to calculate heat-aware walking routes near you.</string>
+	<!-- Google Maps SDK API key — replace YOUR_GOOGLE_MAPS_API_KEY with your real key -->
+	<key>GMSApiKey</key>
+	<string>YOUR_GOOGLE_MAPS_API_KEY</string>
 </dict>
 </plist>
