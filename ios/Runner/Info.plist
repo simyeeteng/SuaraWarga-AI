@@ -76,8 +76,8 @@
 	<string>SuaraWarga needs your location to calculate heat-aware walking routes near you.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>SuaraWarga needs your location to calculate heat-aware walking routes near you.</string>
-	<!-- Google Maps SDK API key — replace YOUR_GOOGLE_MAPS_API_KEY with your real key -->
+	<!-- Google Maps SDK API key loaded from ios/Flutter/GoogleMaps.xcconfig -->
 	<key>GMSApiKey</key>
-	<string>YOUR_GOOGLE_MAPS_API_KEY</string>
+	<string>$(GOOGLE_MAPS_API_KEY)</string>
 </dict>
 </plist>
