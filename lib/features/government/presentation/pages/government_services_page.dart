@@ -4,7 +4,6 @@ import '../../../../app/routes.dart';
 import '../../../../core/services/app_state.dart';
 import '../../../../shared/widgets/custom_header.dart';
 import '../../../../shared/widgets/ai_tag.dart';
-import '../../../../core/constants/constants.dart';
 
 class GovernmentServicesPage extends StatelessWidget {
   const GovernmentServicesPage({super.key});
@@ -80,7 +79,11 @@ class GovernmentServicesPage extends StatelessWidget {
                           color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 30),
+                        child: const Icon(
+                          Icons.smart_toy_rounded,
+                          color: Colors.white,
+                          size: 30,
+                        ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -105,7 +108,7 @@ class GovernmentServicesPage extends StatelessWidget {
                             ),
                           ],
                         ),
-                      )
+                      ),
                     ],
                   ),
                 ),
@@ -117,10 +120,6 @@ class GovernmentServicesPage extends StatelessWidget {
                     margin: const EdgeInsets.only(bottom: 12),
                     child: InkWell(
                       onTap: () {
-                        if (svc['route'] == AppRoutes.listening) {
-                          // Setup default first intent for direct mic assistant tap
-                          appState.setPendingIntent(AppConstants.VOICE_INTENTS[0]);
-                        }
                         Navigator.pushNamed(context, svc['route'] as String);
                       },
                       borderRadius: BorderRadius.circular(24),
@@ -130,7 +129,9 @@ class GovernmentServicesPage extends StatelessWidget {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color: appState.highContrast ? Colors.black : const Color(0xFFEFF6FF),
+                            color: appState.highContrast
+                                ? Colors.black
+                                : const Color(0xFFEFF6FF),
                             width: appState.highContrast ? 2.5 : 1.5,
                           ),
                         ),
@@ -148,7 +149,11 @@ class GovernmentServicesPage extends StatelessWidget {
                                 ),
                                 borderRadius: BorderRadius.circular(16),
                               ),
-                              child: Icon(svc['icon'] as IconData, color: Colors.white, size: 26),
+                              child: Icon(
+                                svc['icon'] as IconData,
+                                color: Colors.white,
+                                size: 26,
+                              ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -156,7 +161,9 @@ class GovernmentServicesPage extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    appState.translate(svc['titleKey'] as String),
+                                    appState.translate(
+                                      svc['titleKey'] as String,
+                                    ),
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w900,
@@ -166,7 +173,9 @@ class GovernmentServicesPage extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    appState.translate(svc['descKey'] as String),
+                                    appState.translate(
+                                      svc['descKey'] as String,
+                                    ),
                                     style: const TextStyle(
                                       fontSize: 13,
                                       color: Color(0xFF64748B),
@@ -176,17 +185,25 @@ class GovernmentServicesPage extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 8),
                                   Row(
-                                    children: (svc['tags'] as List<String>).map((tag) {
-                                      return Padding(
-                                        padding: const EdgeInsets.only(right: 6),
-                                        child: AITag(label: tag),
-                                      );
-                                    }).toList(),
+                                    children: (svc['tags'] as List<String>).map(
+                                      (tag) {
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                            right: 6,
+                                          ),
+                                          child: AITag(label: tag),
+                                        );
+                                      },
+                                    ).toList(),
                                   ),
                                 ],
                               ),
                             ),
-                            const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1), size: 24),
+                            const Icon(
+                              Icons.chevron_right_rounded,
+                              color: Color(0xFFCBD5E1),
+                              size: 24,
+                            ),
                           ],
                         ),
                       ),
@@ -205,7 +222,10 @@ class GovernmentServicesPage extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.info_outline_rounded, color: Color(0xFFD97706)),
+                      const Icon(
+                        Icons.info_outline_rounded,
+                        color: Color(0xFFD97706),
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(

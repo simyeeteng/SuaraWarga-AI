@@ -75,20 +75,75 @@ class AppConstants {
   ];
 
   static const List<VoiceLanguage> VOICE_LANGS = [
-    VoiceLanguage(id: 'Mandarin', label: 'Chinese (Mandarin)', sub: '普通话 / 中文', icon: Icons.record_voice_over),
-    VoiceLanguage(id: 'English', label: 'English', sub: 'English', icon: Icons.language),
-    VoiceLanguage(id: 'Tamil', label: 'Tamil', sub: 'தமிழ்', icon: Icons.language),
-    VoiceLanguage(id: 'Hokkien', label: 'Hokkien', sub: '福建话', icon: Icons.record_voice_over),
-    VoiceLanguage(id: 'Cantonese', label: 'Cantonese', sub: '广东话', icon: Icons.record_voice_over),
-    VoiceLanguage(id: 'Malay', label: 'Bahasa Melayu', sub: 'Melayu', icon: Icons.language),
+    VoiceLanguage(
+      id: 'English',
+      label: 'English',
+      sub: 'English',
+      icon: Icons.language,
+    ),
+    VoiceLanguage(
+      id: 'Mandarin',
+      label: 'Chinese (Mandarin)',
+      sub: '普通话 / 中文',
+      icon: Icons.record_voice_over,
+    ),
+    VoiceLanguage(
+      id: 'Tamil',
+      label: 'Tamil',
+      sub: 'தமிழ்',
+      icon: Icons.language,
+    ),
+    VoiceLanguage(
+      id: 'Hokkien',
+      label: 'Hokkien',
+      sub: '福建话',
+      icon: Icons.record_voice_over,
+    ),
+    VoiceLanguage(
+      id: 'Cantonese',
+      label: 'Cantonese',
+      sub: '广东话 / 廣東話',
+      icon: Icons.record_voice_over,
+    ),
+    VoiceLanguage(
+      id: 'Malay',
+      label: 'Bahasa Melayu',
+      sub: 'Melayu',
+      icon: Icons.language,
+    ),
   ];
 
   static final List<VoiceIntent> VOICE_INTENTS = [
+    _routeIntent(
+      phrase: 'Take me to KL Sentral by the coolest walking route.',
+      detectedLang: 'English',
+      capturedDesc: 'English route request captured',
+    ),
+    _routeIntent(
+      phrase: '带我去吉隆坡中央车站，找最凉快的路线。',
+      detectedLang: 'Mandarin',
+      capturedDesc: 'Mandarin route request captured',
+    ),
+    _routeIntent(
+      phrase: 'KL Sentral-க்கு குளிரான நடைபாதையை காண்பி.',
+      detectedLang: 'Tamil',
+      capturedDesc: 'Tamil route request captured',
+    ),
+    _routeIntent(
+      phrase: 'Wa beh khi KL Sentral, chhoe siang liang e lo.',
+      detectedLang: 'Hokkien',
+      capturedDesc: 'Hokkien route request captured',
+    ),
+    _routeIntent(
+      phrase: 'Ngo seung heui KL Sentral, wan tiu leng fong ge lou.',
+      detectedLang: 'Cantonese',
+      capturedDesc: 'Cantonese route request captured',
+    ),
     const VoiceIntent(
       phrase: 'Wa beh renew IC.',
       detectedLang: 'Hokkien',
-      service: 'MyKad Renewal — Smart Form',
-      serviceDesc: 'JPN · Fill renewal form step by step',
+      service: 'MyKad Renewal - Smart Form',
+      serviceDesc: 'JPN - Fill renewal form step by step',
       serviceIcon: 'edit_document',
       serviceColor: Colors.amber,
       targetScreen: 'formAssistant',
@@ -112,7 +167,7 @@ class AppConstants {
           label: 'Intent Recognition',
           tech: 'NLP + LLM',
           color: Colors.amber,
-          desc: 'Renew MyKad → JPN',
+          desc: 'Renew MyKad -> JPN',
         ),
         PipelineStep(
           icon: 'edit_document',
@@ -124,49 +179,10 @@ class AppConstants {
       ],
     ),
     const VoiceIntent(
-      phrase: 'Ngo seung heui Hospital Sultanah Aminah.',
-      detectedLang: 'Cantonese',
-      service: 'Navigate to Hospital Sultanah',
-      serviceDesc: 'Smart Mobility · AI route selection',
-      serviceIcon: 'directions_bus',
-      serviceColor: Colors.green,
-      targetScreen: 'transitGuide',
-      pipelineSteps: [
-        PipelineStep(
-          icon: 'mic',
-          label: 'Speech Recognition',
-          tech: 'ASR',
-          color: Colors.blue,
-          desc: 'Cantonese audio captured',
-        ),
-        PipelineStep(
-          icon: 'translate',
-          label: 'Dialect Recognition',
-          tech: 'Dialect AI',
-          color: Colors.purple,
-          desc: 'Cantonese detected',
-        ),
-        PipelineStep(
-          icon: 'psychology',
-          label: 'Intent Recognition',
-          tech: 'NLP + LLM',
-          color: Colors.amber,
-          desc: 'Go to Hospital Sultanah',
-        ),
-        PipelineStep(
-          icon: 'directions_bus',
-          label: 'Public Transport Guide',
-          tech: 'Mobility AI',
-          color: Colors.green,
-          desc: 'Bus BJ2 — arriving in 4 min',
-        ),
-      ],
-    ),
-    const VoiceIntent(
       phrase: '我想更新我的身份证 IC。',
       detectedLang: 'Mandarin',
       service: 'MyKad Renewal Assistant',
-      serviceDesc: 'JPN · Chinese voice step-by-step',
+      serviceDesc: 'JPN - Chinese voice step-by-step',
       serviceIcon: 'edit_document',
       serviceColor: Colors.blue,
       targetScreen: 'formAssistant',
@@ -190,7 +206,7 @@ class AppConstants {
           label: 'Intent Recognition',
           tech: 'NLP + LLM',
           color: Colors.amber,
-          desc: 'Renew IC → JPN',
+          desc: 'Renew IC -> JPN',
         ),
         PipelineStep(
           icon: 'edit_document',
@@ -205,7 +221,7 @@ class AppConstants {
       phrase: 'I need help with my government letter and bill.',
       detectedLang: 'English',
       service: 'Government Letter Interpreter',
-      serviceDesc: 'OCR + LLM · Explains in simple language',
+      serviceDesc: 'OCR + LLM - Explains in simple language',
       serviceIcon: 'description',
       serviceColor: Colors.purple,
       targetScreen: 'letterInterpreter',
@@ -229,7 +245,7 @@ class AppConstants {
           label: 'Intent Recognition',
           tech: 'NLP + LLM',
           color: Colors.amber,
-          desc: 'Help with letter → scan doc',
+          desc: 'Help with letter -> scan doc',
         ),
         PipelineStep(
           icon: 'description',
@@ -244,7 +260,7 @@ class AppConstants {
       phrase: 'நான் என் அடையாள அட்டையைப் புதுப்பிக்க வேண்டும்.',
       detectedLang: 'Tamil',
       service: 'Document Checker (Tamil)',
-      serviceDesc: 'JPN · Tamil voice checklist',
+      serviceDesc: 'JPN - Tamil voice checklist',
       serviceIcon: 'checklist_rtl',
       serviceColor: Colors.deepOrange,
       targetScreen: 'docChecker',
@@ -268,7 +284,7 @@ class AppConstants {
           label: 'Intent Recognition',
           tech: 'NLP + LLM',
           color: Colors.amber,
-          desc: 'Renew IC → Tamil checklist',
+          desc: 'Renew IC -> Tamil checklist',
         ),
         PipelineStep(
           icon: 'checklist_rtl',
@@ -283,7 +299,7 @@ class AppConstants {
       phrase: 'Saya nak semak dokumen pembaharuan MyKad.',
       detectedLang: 'Malay',
       service: 'Document Readiness Check',
-      serviceDesc: 'JPN · Know what to bring',
+      serviceDesc: 'JPN - Know what to bring',
       serviceIcon: 'checklist_rtl',
       serviceColor: Colors.green,
       targetScreen: 'docChecker',
@@ -307,7 +323,7 @@ class AppConstants {
           label: 'Intent Recognition',
           tech: 'NLP + LLM',
           color: Colors.amber,
-          desc: 'Renew MyKad — check documents',
+          desc: 'Renew MyKad -> check documents',
         ),
         PipelineStep(
           icon: 'checklist_rtl',
@@ -319,4 +335,158 @@ class AppConstants {
       ],
     ),
   ];
+
+  static const VoiceIntent VOICE_UNMATCHED_INTENT = VoiceIntent(
+    phrase: '',
+    detectedLang: 'Unknown',
+    service: 'Voice Request',
+    serviceDesc: 'No matching service found',
+    serviceIcon: 'description',
+    serviceColor: Colors.blueGrey,
+    targetScreen: 'home',
+    pipelineSteps: [],
+  );
+
+  static VoiceIntent intentForLanguage(String voiceLanguage) {
+    final normalized = voiceLanguage.toLowerCase();
+    return VOICE_INTENTS.firstWhere(
+      (intent) =>
+          intent.detectedLang.toLowerCase() == normalized ||
+          (normalized.contains('chinese') &&
+              intent.detectedLang == 'Mandarin') ||
+          (normalized.contains('mandarin') &&
+              intent.detectedLang == 'Mandarin'),
+      orElse: () => VOICE_UNMATCHED_INTENT,
+    );
+  }
+
+  static VoiceIntent intentForTranscript(
+    String transcript,
+    String voiceLanguage,
+  ) {
+    final normalized = transcript.toLowerCase().trim();
+    if (normalized.isEmpty) return VOICE_UNMATCHED_INTENT;
+
+    final wantsRoute =
+        normalized.contains('route') ||
+        normalized.contains('navigate') ||
+        normalized.contains('walking') ||
+        normalized.contains('hospital') ||
+        normalized.contains('sultanah') ||
+        normalized.contains('coolest') ||
+        normalized.contains('jalan') ||
+        normalized.contains('go to') ||
+        normalized.contains('take me') ||
+        normalized.contains('\u53bb') ||
+        normalized.contains('\u8def\u7ebf') ||
+        normalized.contains('\u8def\u7dda') ||
+        normalized.contains('\u533b\u9662') ||
+        normalized.contains('\u91ab\u9662') ||
+        normalized.contains(
+          '\u0bae\u0bb0\u0bc1\u0ba4\u0bcd\u0ba4\u0bc1\u0bb5\u0bae\u0ba9\u0bc8',
+        ) ||
+        normalized.contains('\u0ba8\u0b9f\u0bc8\u0baa\u0bbe\u0ba4\u0bc8') ||
+        normalized.contains('maruthuvamanai') ||
+        normalized.contains('nadaipathai') ||
+        normalized.contains('去') ||
+        normalized.contains('路线') ||
+        normalized.contains('路線') ||
+        normalized.contains('医院') ||
+        normalized.contains('醫院') ||
+        normalized.contains('மருத்துவமனை') ||
+        normalized.contains('நடைபாதை') ||
+        normalized.contains('khi') ||
+        normalized.contains('heui');
+    if (wantsRoute) {
+      return VOICE_INTENTS.firstWhere(
+        (intent) =>
+            intent.targetScreen == 'tropicalRoute' &&
+            (intent.detectedLang.toLowerCase() == voiceLanguage.toLowerCase() ||
+                (voiceLanguage.toLowerCase().contains('mandarin') &&
+                    intent.detectedLang == 'Mandarin') ||
+                (voiceLanguage.toLowerCase().contains('chinese') &&
+                    intent.detectedLang == 'Mandarin')),
+        orElse: () => VOICE_INTENTS.first,
+      );
+    }
+
+    final wantsDocument =
+        normalized.contains('document') ||
+        normalized.contains('letter') ||
+        normalized.contains('bill') ||
+        normalized.contains('ic') ||
+        normalized.contains('mykad') ||
+        normalized.contains('\u8eab\u4efd\u8bc1') ||
+        normalized.contains('\u8eab\u4efd\u8b49') ||
+        normalized.contains('\u0b85\u0b9f\u0bc8\u0baf\u0bbe\u0bb3') ||
+        normalized.contains('身份证') ||
+        normalized.contains('身份證') ||
+        normalized.contains('அடையாள');
+    if (wantsDocument) {
+      return VOICE_INTENTS.firstWhere(
+        (intent) =>
+            intent.targetScreen != 'tropicalRoute' &&
+            (intent.detectedLang.toLowerCase() == voiceLanguage.toLowerCase() ||
+                (voiceLanguage.toLowerCase().contains('mandarin') &&
+                    intent.detectedLang == 'Mandarin') ||
+                (voiceLanguage.toLowerCase().contains('chinese') &&
+                    intent.detectedLang == 'Mandarin')),
+        orElse: () => VOICE_INTENTS.firstWhere(
+          (intent) => intent.targetScreen == 'letterInterpreter',
+        ),
+      );
+    }
+
+    return VOICE_UNMATCHED_INTENT;
+  }
+
+  static VoiceIntent _routeIntent({
+    required String phrase,
+    required String detectedLang,
+    required String capturedDesc,
+  }) {
+    return VoiceIntent(
+      phrase: phrase,
+      detectedLang: detectedLang,
+      service: 'TropicalRoute AI',
+      serviceDesc: 'Smart Mobility - heat-aware route selection',
+      serviceIcon: 'alt_route',
+      serviceColor: Colors.green,
+      targetScreen: 'tropicalRoute',
+      pipelineSteps: [
+        PipelineStep(
+          icon: 'mic',
+          label: 'Speech Recognition',
+          tech: 'ASR',
+          color: Colors.blue,
+          desc: capturedDesc,
+        ),
+        PipelineStep(
+          icon: 'translate',
+          label: detectedLang == 'Hokkien' || detectedLang == 'Cantonese'
+              ? 'Dialect Recognition'
+              : 'Language Recognition',
+          tech: detectedLang == 'Hokkien' || detectedLang == 'Cantonese'
+              ? 'Dialect AI'
+              : 'Language AI',
+          color: Colors.purple,
+          desc: '$detectedLang detected',
+        ),
+        const PipelineStep(
+          icon: 'psychology',
+          label: 'Intent Recognition',
+          tech: 'NLP + LLM',
+          color: Colors.amber,
+          desc: 'Navigation request -> TropicalRoute',
+        ),
+        const PipelineStep(
+          icon: 'alt_route',
+          label: 'TropicalRoute AI',
+          tech: 'Mobility AI',
+          color: Colors.green,
+          desc: 'Opening shaded walking routes',
+        ),
+      ],
+    );
+  }
 }

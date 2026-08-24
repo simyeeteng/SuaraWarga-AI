@@ -11,7 +11,6 @@ class AppRoutes {
   static const String transitGuide = '/transit-guide';
   static const String walkability = '/walkability';
   static const String listening = '/listening';
-  static const String processing = '/processing';
   static const String history = '/history';
   static const String notifications = '/notifications';
   static const String profile = '/profile';

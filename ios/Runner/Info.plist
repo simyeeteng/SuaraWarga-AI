@@ -66,6 +66,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- Voice input access -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>SuaraWarga uses the microphone so you can speak service and route requests.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>SuaraWarga uses speech recognition to understand your spoken request.</string>
 	<!-- Location access for GPS routing -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>SuaraWarga needs your location to calculate heat-aware walking routes near you.</string>

@@ -71,7 +71,9 @@ class UserProfile {
       uiLang: json['uiLang'] as String,
       voiceLang: json['voiceLang'] as String,
       emergencyContact: json['emergencyContact'] != null
-          ? EmergencyContact.fromJson(json['emergencyContact'] as Map<String, dynamic>)
+          ? EmergencyContact.fromJson(
+              json['emergencyContact'] as Map<String, dynamic>,
+            )
           : null,
     );
   }
@@ -80,7 +82,8 @@ class UserProfile {
 class AppState extends ChangeNotifier {
   // Accessibility Font Scaling
   static const double minFontScale = 0.9;
-  static const double maxFontScale = 1.8; // Increased max scale to support up to 200% scaling properly
+  static const double maxFontScale =
+      1.8; // Increased max scale to support up to 200% scaling properly
 
   double _fontScale = 1.0;
   bool _highContrast = false;
@@ -207,11 +210,19 @@ class AppState extends ChangeNotifier {
   }
 
   // Simulated Speech and Processing Flows
-  VoiceIntent _pendingIntent = AppConstants.VOICE_INTENTS[0];
+  VoiceIntent _pendingIntent = AppConstants.VOICE_UNMATCHED_INTENT;
+  String _latestVoiceTranscript = '';
   VoiceIntent get pendingIntent => _pendingIntent;
+  String get latestVoiceTranscript => _latestVoiceTranscript;
 
   void setPendingIntent(VoiceIntent intent) {
     _pendingIntent = intent;
+    _latestVoiceTranscript = '';
+    notifyListeners();
+  }
+
+  void setLatestVoiceTranscript(String transcript) {
+    _latestVoiceTranscript = transcript.trim();
     notifyListeners();
   }
 
@@ -283,7 +294,7 @@ class AppState extends ChangeNotifier {
   Future<void> initLocalStorage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Load Accessibility Settings
       _fontScale = prefs.getDouble('fontScale') ?? 1.0;
       _highContrast = prefs.getBool('highContrast') ?? false;
@@ -294,7 +305,9 @@ class AppState extends ChangeNotifier {
       if (rulesJson != null) {
         _documentRules = json.decode(rulesJson) as Map<String, dynamic>;
       } else {
-        _documentRules = Map<String, dynamic>.from(DefaultConfigs.defaultDocumentRules);
+        _documentRules = Map<String, dynamic>.from(
+          DefaultConfigs.defaultDocumentRules,
+        );
         await prefs.setString('document_rules', json.encode(_documentRules));
       }
 
@@ -303,15 +316,22 @@ class AppState extends ChangeNotifier {
       if (dirJson != null) {
         _governmentDirectory = json.decode(dirJson) as Map<String, dynamic>;
       } else {
-        _governmentDirectory = Map<String, dynamic>.from(DefaultConfigs.defaultGovernmentDirectory);
-        await prefs.setString('government_directory', json.encode(_governmentDirectory));
+        _governmentDirectory = Map<String, dynamic>.from(
+          DefaultConfigs.defaultGovernmentDirectory,
+        );
+        await prefs.setString(
+          'government_directory',
+          json.encode(_governmentDirectory),
+        );
       }
 
       // 3. Load scanned documents
       final String? scannedJson = prefs.getString('scanned_documents');
       if (scannedJson != null) {
         final List<dynamic> rawList = json.decode(scannedJson) as List<dynamic>;
-        _scannedDocuments = rawList.map((d) => Map<String, dynamic>.from(d as Map)).toList();
+        _scannedDocuments = rawList
+            .map((d) => Map<String, dynamic>.from(d as Map))
+            .toList();
         if (_scannedDocuments.isNotEmpty) {
           _activeScannedDocument = _scannedDocuments.first;
         }
@@ -323,19 +343,31 @@ class AppState extends ChangeNotifier {
       // 5. Load verification contacts
       final String? contactsJson = prefs.getString('verification_contacts');
       if (contactsJson != null) {
-        _verificationContacts = json.decode(contactsJson) as Map<String, dynamic>;
+        _verificationContacts =
+            json.decode(contactsJson) as Map<String, dynamic>;
       } else {
-        _verificationContacts = Map<String, dynamic>.from(DefaultConfigs.defaultVerificationContacts);
-        await prefs.setString('verification_contacts', json.encode(_verificationContacts));
+        _verificationContacts = Map<String, dynamic>.from(
+          DefaultConfigs.defaultVerificationContacts,
+        );
+        await prefs.setString(
+          'verification_contacts',
+          json.encode(_verificationContacts),
+        );
       }
-      
+
       notifyListeners();
     } catch (e) {
       debugPrint('Error initializing local storage: $e');
       // If shared preferences fails, fallback to memory default configs
-      _documentRules = Map<String, dynamic>.from(DefaultConfigs.defaultDocumentRules);
-      _governmentDirectory = Map<String, dynamic>.from(DefaultConfigs.defaultGovernmentDirectory);
-      _verificationContacts = Map<String, dynamic>.from(DefaultConfigs.defaultVerificationContacts);
+      _documentRules = Map<String, dynamic>.from(
+        DefaultConfigs.defaultDocumentRules,
+      );
+      _governmentDirectory = Map<String, dynamic>.from(
+        DefaultConfigs.defaultGovernmentDirectory,
+      );
+      _verificationContacts = Map<String, dynamic>.from(
+        DefaultConfigs.defaultVerificationContacts,
+      );
     }
   }
 
@@ -353,7 +385,10 @@ class AppState extends ChangeNotifier {
   Future<void> _saveScannedDocuments() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('scanned_documents', json.encode(_scannedDocuments));
+      await prefs.setString(
+        'scanned_documents',
+        json.encode(_scannedDocuments),
+      );
     } catch (e) {
       debugPrint('Error saving scanned documents: $e');
     }
@@ -376,17 +411,20 @@ class AppState extends ChangeNotifier {
       final String rawText = await _ocrService.performOcr(filePath);
 
       // 2. LLM classification & facts merging
-      final LlmResult result = await _llmService.analyzeDocument(rawText, _documentRules, _verificationContacts);
+      final LlmResult result = await _llmService.analyzeDocument(
+        rawText,
+        _documentRules,
+        _verificationContacts,
+      );
 
       // 3. Construct scanned document record
       final String docId = 'doc_${DateTime.now().millisecondsSinceEpoch}';
-      
+
       // Transform raw required items string list into checkable items
-      final List<Map<String, dynamic>> checklist = result.requiredItems.map((item) {
-        return {
-          'item': item,
-          'ready': false,
-        };
+      final List<Map<String, dynamic>> checklist = result.requiredItems.map((
+        item,
+      ) {
+        return {'item': item, 'ready': false};
       }).toList();
 
       final Map<String, dynamic> newDoc = {
@@ -422,7 +460,10 @@ class AppState extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _isProcessingDocument = false;
-      _documentProcessingError = e.toString().replaceFirst('BlurryImageException: ', '');
+      _documentProcessingError = e.toString().replaceFirst(
+        'BlurryImageException: ',
+        '',
+      );
       notifyListeners();
       rethrow;
     }
@@ -436,16 +477,19 @@ class AppState extends ChangeNotifier {
 
     try {
       // 1. Classification & facts merging
-      final LlmResult result = await _llmService.analyzeDocument(rawText, _documentRules, _verificationContacts);
+      final LlmResult result = await _llmService.analyzeDocument(
+        rawText,
+        _documentRules,
+        _verificationContacts,
+      );
 
       // 2. Construct scanned document record
       final String docId = 'doc_${DateTime.now().millisecondsSinceEpoch}';
-      
-      final List<Map<String, dynamic>> checklist = result.requiredItems.map((item) {
-        return {
-          'item': item,
-          'ready': false,
-        };
+
+      final List<Map<String, dynamic>> checklist = result.requiredItems.map((
+        item,
+      ) {
+        return {'item': item, 'ready': false};
       }).toList();
 
       final Map<String, dynamic> newDoc = {
@@ -488,11 +532,17 @@ class AppState extends ChangeNotifier {
   }
 
   /// Updates a verification contact dynamically in local storage
-  Future<void> updateVerificationContact(String key, Map<String, dynamic> updatedValue) async {
+  Future<void> updateVerificationContact(
+    String key,
+    Map<String, dynamic> updatedValue,
+  ) async {
     _verificationContacts[key] = updatedValue;
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('verification_contacts', json.encode(_verificationContacts));
+      await prefs.setString(
+        'verification_contacts',
+        json.encode(_verificationContacts),
+      );
       notifyListeners();
     } catch (e) {
       debugPrint('Error saving verification contacts: $e');
@@ -501,10 +551,15 @@ class AppState extends ChangeNotifier {
 
   /// Reset all verification contacts to defaults
   Future<void> resetContactsToDefault() async {
-    _verificationContacts = Map<String, dynamic>.from(DefaultConfigs.defaultVerificationContacts);
+    _verificationContacts = Map<String, dynamic>.from(
+      DefaultConfigs.defaultVerificationContacts,
+    );
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('verification_contacts', json.encode(_verificationContacts));
+      await prefs.setString(
+        'verification_contacts',
+        json.encode(_verificationContacts),
+      );
       notifyListeners();
     } catch (e) {
       debugPrint('Error resetting contacts: $e');
@@ -515,15 +570,18 @@ class AppState extends ChangeNotifier {
   void toggleScannedChecklistItem(String docId, int itemIndex) {
     final docIndex = _scannedDocuments.indexWhere((d) => d['id'] == docId);
     if (docIndex != -1) {
-      final List<dynamic> checklist = _scannedDocuments[docIndex]['checklist'] as List<dynamic>;
+      final List<dynamic> checklist =
+          _scannedDocuments[docIndex]['checklist'] as List<dynamic>;
       if (itemIndex >= 0 && itemIndex < checklist.length) {
-        checklist[itemIndex]['ready'] = !(checklist[itemIndex]['ready'] as bool);
-        
+        checklist[itemIndex]['ready'] =
+            !(checklist[itemIndex]['ready'] as bool);
+
         // Update active document reference if matching
-        if (_activeScannedDocument != null && _activeScannedDocument!['id'] == docId) {
+        if (_activeScannedDocument != null &&
+            _activeScannedDocument!['id'] == docId) {
           _activeScannedDocument = _scannedDocuments[docIndex];
         }
-        
+
         _saveScannedDocuments();
         notifyListeners();
       }
@@ -533,15 +591,21 @@ class AppState extends ChangeNotifier {
   /// Deletes a scanned document record
   Future<void> deleteScannedDocument(String docId) async {
     _scannedDocuments.removeWhere((d) => d['id'] == docId);
-    if (_activeScannedDocument != null && _activeScannedDocument!['id'] == docId) {
-      _activeScannedDocument = _scannedDocuments.isNotEmpty ? _scannedDocuments.first : null;
+    if (_activeScannedDocument != null &&
+        _activeScannedDocument!['id'] == docId) {
+      _activeScannedDocument = _scannedDocuments.isNotEmpty
+          ? _scannedDocuments.first
+          : null;
     }
     await _saveScannedDocuments();
     notifyListeners();
   }
 
   /// Updates a rule dynamically in local storage (Admin panel function)
-  Future<void> updateDocumentRule(String key, Map<String, dynamic> updatedValue) async {
+  Future<void> updateDocumentRule(
+    String key,
+    Map<String, dynamic> updatedValue,
+  ) async {
     _documentRules[key] = updatedValue;
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -554,7 +618,9 @@ class AppState extends ChangeNotifier {
 
   /// Reset all document rules to defaults
   Future<void> resetRulesToDefault() async {
-    _documentRules = Map<String, dynamic>.from(DefaultConfigs.defaultDocumentRules);
+    _documentRules = Map<String, dynamic>.from(
+      DefaultConfigs.defaultDocumentRules,
+    );
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('document_rules', json.encode(_documentRules));
@@ -569,9 +635,9 @@ class AppState extends ChangeNotifier {
   final WeatherService _weatherService = WeatherService();
   final TransitService _transitService = TransitService();
 
-  String _destination = 'Hospital Sultanah Aminah';
+  String _destination = '';
   String get destination => _destination;
-  
+
   String _openWeatherApiKey = '';
   String get openWeatherApiKey => _openWeatherApiKey;
 
@@ -590,7 +656,7 @@ class AppState extends ChangeNotifier {
   String? _routingError;
   String? get routingError => _routingError;
 
-  int _selectedRouteIndex = 2; // Default to 'Covered' (index 2)
+  int _selectedRouteIndex = 3; // Default to 'Balanced' (index 3)
   int get selectedRouteIndex => _selectedRouteIndex;
 
   void setDestination(String dest) {
@@ -600,6 +666,15 @@ class AppState extends ChangeNotifier {
 
   void setSelectedRouteIndex(int index) {
     _selectedRouteIndex = index;
+    notifyListeners();
+  }
+
+  void clearTropicalRoutes({String? message}) {
+    _routes = [];
+    _weather = null;
+    _busItinerary = null;
+    _loadingRoutes = false;
+    _routingError = message;
     notifyListeners();
   }
 
@@ -616,10 +691,10 @@ class AppState extends ChangeNotifier {
 
   /// Calculates walking routes and transit options using live/fallback services
   Future<void> calculateTropicalRoutes({
-    double startLat = 1.4576,
-    double startLng = 103.7618,
-    double endLat = 1.4628,
-    double endLng = 103.7465,
+    required double startLat,
+    required double startLng,
+    required double endLat,
+    required double endLng,
   }) async {
     _loadingRoutes = true;
     _routingError = null;
@@ -634,7 +709,11 @@ class AppState extends ChangeNotifier {
       );
 
       // 2. Compute solar angles for current time
-      final sunPos = SolarCalculator.calculatePosition(DateTime.now(), startLat, startLng);
+      final sunPos = SolarCalculator.calculatePosition(
+        DateTime.now(),
+        startLat,
+        startLng,
+      );
 
       // 3. Get OSRM paths + OSM Overpass shade overlay
       _routes = await _routingService.getWalkingRoutes(
@@ -646,6 +725,13 @@ class AppState extends ChangeNotifier {
         currentHumidity: _weather!.humidity,
         sunPos: sunPos,
       );
+
+      final balancedIndex = _routes.indexWhere(
+        (route) => route.id == 'balanced',
+      );
+      if (_selectedRouteIndex < 0 || _selectedRouteIndex >= _routes.length) {
+        _selectedRouteIndex = balancedIndex >= 0 ? balancedIndex : 0;
+      }
 
       // 4. Get GTFS bus scheduling recommendations
       _busItinerary = await _transitService.getTransitItinerary(

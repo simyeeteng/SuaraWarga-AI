@@ -1,14 +1,13 @@
-import 'dart:convert';
 import 'dart:math' as math;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../utils/solar_calculator.dart';
 
 enum SegmentType {
-  covered,   // sheltered (building=roof, covered=yes, tunnel=yes)
-  shaded,    // tree canopy or building shade
-  exposed,   // open sun
-  unknown    // no data available
+  covered, // sheltered (building=roof, covered=yes, tunnel=yes)
+  shaded, // tree canopy or building shade
+  exposed, // open sun
+  unknown, // no data available
 }
 
 class RouteSegment {
@@ -74,19 +73,81 @@ class RouteOption {
   };
 }
 
+class GeocodedPlace {
+  final String name;
+  final double lat;
+  final double lng;
+
+  const GeocodedPlace({
+    required this.name,
+    required this.lat,
+    required this.lng,
+  });
+}
+
 class RoutingService {
-  final Dio _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 8),
-    receiveTimeout: const Duration(seconds: 8),
-  ));
+  final Dio _dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 8),
+      receiveTimeout: const Duration(seconds: 8),
+    ),
+  );
 
   // Overpass API is a public community server and can be slow — use a longer timeout
-  final Dio _overpassDio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 12),
-    receiveTimeout: const Duration(seconds: 20),
-  ));
+  final Dio _overpassDio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 12),
+      receiveTimeout: const Duration(seconds: 20),
+    ),
+  );
 
-  // Fallback / Mock routes between Jalan Wong Ah Fook (1.4576, 103.7618) and Hospital Sultanah Aminah (1.4628, 103.7465)
+  Future<GeocodedPlace> geocodePlace(
+    String query, {
+    double? nearLat,
+    double? nearLng,
+  }) async {
+    final cleanQuery = query.trim();
+    if (cleanQuery.isEmpty) {
+      throw Exception('Enter a place name first.');
+    }
+
+    final params = <String, dynamic>{
+      'q': cleanQuery,
+      'format': 'jsonv2',
+      'limit': 1,
+      'addressdetails': 1,
+      'accept-language': 'en',
+    };
+
+    if (nearLat != null && nearLng != null) {
+      const span = 0.35;
+      params['viewbox'] =
+          '${nearLng - span},${nearLat + span},${nearLng + span},${nearLat - span}';
+      params['bounded'] = 0;
+    }
+
+    final response = await _dio.get(
+      'https://nominatim.openstreetmap.org/search',
+      queryParameters: params,
+      options: Options(
+        headers: const {'User-Agent': 'SuaraWarga-AI/1.0 route prototype'},
+      ),
+    );
+
+    final data = response.data;
+    if (response.statusCode != 200 || data is! List || data.isEmpty) {
+      throw Exception('Place not found: $cleanQuery');
+    }
+
+    final place = data.first as Map<String, dynamic>;
+    return GeocodedPlace(
+      name: (place['display_name'] as String?) ?? cleanQuery,
+      lat: double.parse(place['lat'] as String),
+      lng: double.parse(place['lon'] as String),
+    );
+  }
+
+  // Test fixture route used only when callers explicitly request these exact coordinates.
   static final List<RouteOption> mockJBRoutes = [
     RouteOption(
       id: 'fastest',
@@ -96,12 +157,41 @@ class RoutingService {
       shadePercentage: 0.18,
       coveredPercentage: 0.05,
       comfortScore: 42,
-      description: '18% shaded, standard highway routing with minimal coverage.',
+      description:
+          '18% shaded, standard highway routing with minimal coverage.',
       segments: [
-        RouteSegment(startLat: 1.4576, startLng: 103.7618, endLat: 1.4590, endLng: 103.7590, type: SegmentType.exposed, length: 350),
-        RouteSegment(startLat: 1.4590, startLng: 103.7590, endLat: 1.4610, endLng: 103.7550, type: SegmentType.unknown, length: 600),
-        RouteSegment(startLat: 1.4610, startLng: 103.7550, endLat: 1.4635, endLng: 103.7505, type: SegmentType.exposed, length: 700),
-        RouteSegment(startLat: 1.4635, startLng: 103.7505, endLat: 1.4628, endLng: 103.7465, type: SegmentType.shaded, length: 550),
+        RouteSegment(
+          startLat: 1.4576,
+          startLng: 103.7618,
+          endLat: 1.4590,
+          endLng: 103.7590,
+          type: SegmentType.exposed,
+          length: 350,
+        ),
+        RouteSegment(
+          startLat: 1.4590,
+          startLng: 103.7590,
+          endLat: 1.4610,
+          endLng: 103.7550,
+          type: SegmentType.unknown,
+          length: 600,
+        ),
+        RouteSegment(
+          startLat: 1.4610,
+          startLng: 103.7550,
+          endLat: 1.4635,
+          endLng: 103.7505,
+          type: SegmentType.exposed,
+          length: 700,
+        ),
+        RouteSegment(
+          startLat: 1.4635,
+          startLng: 103.7505,
+          endLat: 1.4628,
+          endLng: 103.7465,
+          type: SegmentType.shaded,
+          length: 550,
+        ),
       ],
     ),
     RouteOption(
@@ -112,13 +202,49 @@ class RoutingService {
       shadePercentage: 0.72,
       coveredPercentage: 0.12,
       comfortScore: 81,
-      description: '72% shaded via dense tree canopy along Jalan Tun Abdul Razak.',
+      description:
+          '72% shaded via dense tree canopy along Jalan Tun Abdul Razak.',
       segments: [
-        RouteSegment(startLat: 1.4576, startLng: 103.7618, endLat: 1.4595, endLng: 103.7630, type: SegmentType.shaded, length: 300),
-        RouteSegment(startLat: 1.4595, startLng: 103.7630, endLat: 1.4630, endLng: 103.7610, type: SegmentType.covered, length: 450),
-        RouteSegment(startLat: 1.4630, startLng: 103.7610, endLat: 1.4660, endLng: 103.7550, type: SegmentType.shaded, length: 800),
-        RouteSegment(startLat: 1.4660, startLng: 103.7550, endLat: 1.4650, endLng: 103.7490, type: SegmentType.shaded, length: 750),
-        RouteSegment(startLat: 1.4650, startLng: 103.7490, endLat: 1.4628, endLng: 103.7465, type: SegmentType.shaded, length: 600),
+        RouteSegment(
+          startLat: 1.4576,
+          startLng: 103.7618,
+          endLat: 1.4595,
+          endLng: 103.7630,
+          type: SegmentType.shaded,
+          length: 300,
+        ),
+        RouteSegment(
+          startLat: 1.4595,
+          startLng: 103.7630,
+          endLat: 1.4630,
+          endLng: 103.7610,
+          type: SegmentType.covered,
+          length: 450,
+        ),
+        RouteSegment(
+          startLat: 1.4630,
+          startLng: 103.7610,
+          endLat: 1.4660,
+          endLng: 103.7550,
+          type: SegmentType.shaded,
+          length: 800,
+        ),
+        RouteSegment(
+          startLat: 1.4660,
+          startLng: 103.7550,
+          endLat: 1.4650,
+          endLng: 103.7490,
+          type: SegmentType.shaded,
+          length: 750,
+        ),
+        RouteSegment(
+          startLat: 1.4650,
+          startLng: 103.7490,
+          endLat: 1.4628,
+          endLng: 103.7465,
+          type: SegmentType.shaded,
+          length: 600,
+        ),
       ],
     ),
     RouteOption(
@@ -129,12 +255,41 @@ class RoutingService {
       shadePercentage: 0.85,
       coveredPercentage: 0.75,
       comfortScore: 78,
-      description: '85% shaded, utilizing extensive covered linkways from JB Sentral.',
+      description:
+          '85% shaded, utilizing extensive covered linkways from JB Sentral.',
       segments: [
-        RouteSegment(startLat: 1.4576, startLng: 103.7618, endLat: 1.4560, endLng: 103.7600, type: SegmentType.covered, length: 300),
-        RouteSegment(startLat: 1.4560, startLng: 103.7600, endLat: 1.4590, endLng: 103.7550, type: SegmentType.covered, length: 700),
-        RouteSegment(startLat: 1.4590, startLng: 103.7550, endLat: 1.4610, endLng: 103.7500, type: SegmentType.covered, length: 650),
-        RouteSegment(startLat: 1.4610, startLng: 103.7500, endLat: 1.4628, endLng: 103.7465, type: SegmentType.exposed, length: 950),
+        RouteSegment(
+          startLat: 1.4576,
+          startLng: 103.7618,
+          endLat: 1.4560,
+          endLng: 103.7600,
+          type: SegmentType.covered,
+          length: 300,
+        ),
+        RouteSegment(
+          startLat: 1.4560,
+          startLng: 103.7600,
+          endLat: 1.4590,
+          endLng: 103.7550,
+          type: SegmentType.covered,
+          length: 700,
+        ),
+        RouteSegment(
+          startLat: 1.4590,
+          startLng: 103.7550,
+          endLat: 1.4610,
+          endLng: 103.7500,
+          type: SegmentType.covered,
+          length: 650,
+        ),
+        RouteSegment(
+          startLat: 1.4610,
+          startLng: 103.7500,
+          endLat: 1.4628,
+          endLng: 103.7465,
+          type: SegmentType.exposed,
+          length: 950,
+        ),
       ],
     ),
     RouteOption(
@@ -145,12 +300,41 @@ class RoutingService {
       shadePercentage: 0.55,
       coveredPercentage: 0.35,
       comfortScore: 68,
-      description: '55% shaded, providing the optimal trade-off of travel time and comfort.',
+      description:
+          '55% shaded, providing the optimal trade-off of travel time and comfort.',
       segments: [
-        RouteSegment(startLat: 1.4576, startLng: 103.7618, endLat: 1.4590, endLng: 103.7580, type: SegmentType.covered, length: 450),
-        RouteSegment(startLat: 1.4590, startLng: 103.7580, endLat: 1.4610, endLng: 103.7530, type: SegmentType.exposed, length: 650),
-        RouteSegment(startLat: 1.4610, startLng: 103.7530, endLat: 1.4620, endLng: 103.7490, type: SegmentType.shaded, length: 550),
-        RouteSegment(startLat: 1.4620, startLng: 103.7490, endLat: 1.4628, endLng: 103.7465, type: SegmentType.covered, length: 750),
+        RouteSegment(
+          startLat: 1.4576,
+          startLng: 103.7618,
+          endLat: 1.4590,
+          endLng: 103.7580,
+          type: SegmentType.covered,
+          length: 450,
+        ),
+        RouteSegment(
+          startLat: 1.4590,
+          startLng: 103.7580,
+          endLat: 1.4610,
+          endLng: 103.7530,
+          type: SegmentType.exposed,
+          length: 650,
+        ),
+        RouteSegment(
+          startLat: 1.4610,
+          startLng: 103.7530,
+          endLat: 1.4620,
+          endLng: 103.7490,
+          type: SegmentType.shaded,
+          length: 550,
+        ),
+        RouteSegment(
+          startLat: 1.4620,
+          startLng: 103.7490,
+          endLat: 1.4628,
+          endLng: 103.7465,
+          type: SegmentType.covered,
+          length: 750,
+        ),
       ],
     ),
   ];
@@ -167,8 +351,11 @@ class RoutingService {
   }) async {
     // If the coordinates match the Johor Bahru Hospital route, return high-fidelity mocks directly
     // to guarantee an instant, detailed visual walkthrough for testing
-    final isJBMockRoute = (startLat - 1.4576).abs() < 0.01 && (startLng - 103.7618).abs() < 0.01 &&
-        (endLat - 1.4628).abs() < 0.01 && (endLng - 103.7465).abs() < 0.01;
+    final isJBMockRoute =
+        (startLat - 1.4576).abs() < 0.01 &&
+        (startLng - 103.7618).abs() < 0.01 &&
+        (endLat - 1.4628).abs() < 0.01 &&
+        (endLng - 103.7465).abs() < 0.01;
 
     if (isJBMockRoute) {
       debugPrint('Returning high-fidelity JB mock routes');
@@ -177,16 +364,17 @@ class RoutingService {
 
     try {
       // Query OSRM walking routing (with alternatives enabled)
-      final String url = 'http://router.project-osrm.org/route/v1/foot/$startLng,$startLat;$endLng,$endLat?overview=full&geometries=geojson&alternatives=true';
+      final String url =
+          'http://router.project-osrm.org/route/v1/foot/$startLng,$startLat;$endLng,$endLat?overview=full&geometries=geojson&alternatives=true';
       final response = await _dio.get(url);
-      
+
       if (response.statusCode != 200 || response.data == null) {
         throw Exception('OSRM Routing request failed');
       }
 
       final data = response.data as Map<String, dynamic>;
       final List<dynamic> routes = data['routes'] ?? [];
-      
+
       if (routes.isEmpty) {
         throw Exception('No routes returned from routing engine');
       }
@@ -216,27 +404,38 @@ class RoutingService {
           final double len = _haversineDistance(sLat, sLng, eLat, eLng);
 
           // Determine segment type based on OSM features
-          final type = _determineSegmentType(sLat, sLng, eLat, eLng, osmFeatures, sunPos);
+          final type = _determineSegmentType(
+            sLat,
+            sLng,
+            eLat,
+            eLng,
+            osmFeatures,
+            sunPos,
+          );
 
-          segments.add(RouteSegment(
-            startLat: sLat,
-            startLng: sLng,
-            endLat: eLat,
-            endLng: eLng,
-            type: type,
-            length: len,
-          ));
+          segments.add(
+            RouteSegment(
+              startLat: sLat,
+              startLng: sLng,
+              endLat: eLat,
+              endLng: eLng,
+              type: type,
+              length: len,
+            ),
+          );
         }
 
         // Calculate cover and shade stats
         double coveredLength = 0;
         double shadedLength = 0;
-        double totalEvaluatedLength = 0; // length where OSM data was not 'unknown'
+        double totalEvaluatedLength =
+            0; // length where OSM data was not 'unknown'
 
         for (var segment in segments) {
           if (segment.type == SegmentType.covered) {
             coveredLength += segment.length;
-            shadedLength += segment.length; // covered walkways are always shaded
+            shadedLength +=
+                segment.length; // covered walkways are always shaded
             totalEvaluatedLength += segment.length;
           } else if (segment.type == SegmentType.shaded) {
             shadedLength += segment.length;
@@ -246,19 +445,29 @@ class RoutingService {
           }
         }
 
-        final double coveredPercent = distance > 0 ? (coveredLength / distance) : 0.0;
+        final double coveredPercent = distance > 0
+            ? (coveredLength / distance).clamp(0.0, 1.0).toDouble()
+            : 0.0;
         // If all segments are unknown, shadePercentage is null (unknown)
-        final double? shadePercent = totalEvaluatedLength > 0 ? (shadedLength / totalEvaluatedLength) : null;
+        final double? shadePercent = totalEvaluatedLength > 0
+            ? (shadedLength / totalEvaluatedLength).clamp(0.0, 1.0).toDouble()
+            : null;
 
         // Base travel time penalty (compared to the fastest route in the list)
-        double fastestTime = routes.map((r) => (r['duration'] as num).toDouble()).reduce(math.min);
-        double timePenalty = durationSec > fastestTime ? ((durationSec - fastestTime) / fastestTime) * 0.15 : 0.0;
+        double fastestTime = routes
+            .map((r) => (r['duration'] as num).toDouble())
+            .reduce(math.min);
+        double timePenalty = durationSec > fastestTime
+            ? ((durationSec - fastestTime) / fastestTime) * 0.15
+            : 0.0;
 
         // Comfort score calculation
         int comfortScore = _calculateComfortScore(
           temp: currentTemp,
           humidity: currentHumidity,
-          shadePercent: shadePercent ?? 0.30, // Default to a neutral shade weight if unknown
+          shadePercent:
+              shadePercent ??
+              0.30, // Default to a neutral shade weight if unknown
           coveredPercent: coveredPercent,
           timePenalty: timePenalty,
         );
@@ -270,50 +479,80 @@ class RoutingService {
           name = 'Fastest';
         }
 
-        options.add(RouteOption(
-          id: id,
-          name: name,
-          duration: Duration(seconds: durationSec.round()),
-          distance: distance,
-          shadePercentage: shadePercent,
-          coveredPercentage: coveredPercent,
-          comfortScore: comfortScore,
-          description: '${( (shadePercent ?? 0) * 100).round()}% shaded via OSM checks.',
-          segments: segments,
-        ));
+        options.add(
+          RouteOption(
+            id: id,
+            name: name,
+            duration: Duration(seconds: durationSec.round()),
+            distance: distance,
+            shadePercentage: shadePercent,
+            coveredPercentage: coveredPercent,
+            comfortScore: comfortScore,
+            description:
+                '${((shadePercent ?? 0) * 100).round()}% shaded via OSM checks.',
+            segments: segments,
+          ),
+        );
       }
 
       // Re-map IDs based on their specific features to identify Fastest, Coolest, Covered, Balanced
       return _classifyRouteOptions(options, currentTemp, currentHumidity);
-
     } catch (e) {
-      debugPrint('RoutingService failed: $e. Returning mock routes instead.');
-      return mockJBRoutes;
+      debugPrint(
+        'RoutingService failed: $e. Returning requested-coordinate fallback.',
+      );
+      return _buildFallbackRoutes(
+        startLat: startLat,
+        startLng: startLng,
+        endLat: endLat,
+        endLng: endLng,
+        currentTemp: currentTemp,
+        currentHumidity: currentHumidity,
+      );
     }
   }
 
   /// Classifies alternative routes into the 4 types required
-  List<RouteOption> _classifyRouteOptions(List<RouteOption> options, double temp, double humidity) {
+  List<RouteOption> _classifyRouteOptions(
+    List<RouteOption> options,
+    double temp,
+    double humidity,
+  ) {
     if (options.length < 2) {
-      // If only one option returned, mark it as Fastest, and duplicate/mock others if needed
-      return mockJBRoutes;
+      return _deriveAlternativesFromSingleRoute(options.first, temp, humidity);
+    }
+
+    RouteOption firstUnused(List<RouteOption> sorted, Set<String> usedIds) {
+      return sorted.firstWhere(
+        (option) => !usedIds.contains(option.id),
+        orElse: () => sorted.first,
+      );
     }
 
     // Sort by travel time to find fastest
-    List<RouteOption> sortedByTime = List.from(options)..sort((a, b) => a.duration.compareTo(b.duration));
+    List<RouteOption> sortedByTime = List.from(options)
+      ..sort((a, b) => a.duration.compareTo(b.duration));
     final fastest = sortedByTime.first;
+    final usedIds = <String>{fastest.id};
 
     // Sort by shade percentage
-    List<RouteOption> sortedByShade = List.from(options)..sort((a, b) => (b.shadePercentage ?? 0).compareTo(a.shadePercentage ?? 0));
-    final coolest = sortedByShade.first;
+    List<RouteOption> sortedByShade = List.from(options)
+      ..sort(
+        (a, b) => (b.shadePercentage ?? 0).compareTo(a.shadePercentage ?? 0),
+      );
+    final coolest = firstUnused(sortedByShade, usedIds);
+    usedIds.add(coolest.id);
 
     // Sort by covered percentage
-    List<RouteOption> sortedByCovered = List.from(options)..sort((a, b) => b.coveredPercentage.compareTo(a.coveredPercentage));
-    final covered = sortedByCovered.first;
+    List<RouteOption> sortedByCovered = List.from(options)
+      ..sort((a, b) => b.coveredPercentage.compareTo(a.coveredPercentage));
+    final covered = firstUnused(sortedByCovered, usedIds);
+    usedIds.add(covered.id);
 
     // Sort by comfort score
-    List<RouteOption> sortedByComfort = List.from(options)..sort((a, b) => b.comfortScore.compareTo(a.comfortScore));
-    final balanced = sortedByComfort.first;
+    List<RouteOption> sortedByComfort = List.from(options)
+      ..sort((a, b) => b.comfortScore.compareTo(a.comfortScore));
+    final balanced = firstUnused(sortedByComfort, usedIds);
 
     return [
       RouteOption(
@@ -324,7 +563,9 @@ class RoutingService {
         shadePercentage: fastest.shadePercentage,
         coveredPercentage: fastest.coveredPercentage,
         comfortScore: fastest.comfortScore,
-        description: 'Shortest time. ' + (fastest.id == coolest.id ? 'Fastest is also the Coolest route today.' : 'Minimal shade exposure.'),
+        description: fastest.id == coolest.id
+            ? 'Shortest time. Fastest is also the Coolest route today.'
+            : 'Shortest time. Minimal shade exposure.',
         segments: fastest.segments,
       ),
       RouteOption(
@@ -335,7 +576,9 @@ class RoutingService {
         shadePercentage: coolest.shadePercentage,
         coveredPercentage: coolest.coveredPercentage,
         comfortScore: coolest.comfortScore,
-        description: 'Maximized shade (${((coolest.shadePercentage ?? 0)*100).round()}%). ' + (coolest.id == fastest.id ? 'Fastest is also the Coolest route.' : 'Adds some travel time for comfort.'),
+        description: coolest.id == fastest.id
+            ? 'Maximized shade (${((coolest.shadePercentage ?? 0) * 100).round()}%). Fastest is also the Coolest route.'
+            : 'Maximized shade (${((coolest.shadePercentage ?? 0) * 100).round()}%). Adds some travel time for comfort.',
         segments: coolest.segments,
       ),
       RouteOption(
@@ -346,7 +589,8 @@ class RoutingService {
         shadePercentage: covered.shadePercentage,
         coveredPercentage: covered.coveredPercentage,
         comfortScore: covered.comfortScore,
-        description: 'Maximized covered walkways (${(covered.coveredPercentage*100).round()}% coverage from rain/sun).',
+        description:
+            'Maximized covered walkways (${(covered.coveredPercentage * 100).round()}% coverage from rain/sun).',
         segments: covered.segments,
       ),
       RouteOption(
@@ -359,6 +603,235 @@ class RoutingService {
         comfortScore: balanced.comfortScore,
         description: 'Optimal trade-off across time, shade, and comfort.',
         segments: balanced.segments,
+      ),
+    ];
+  }
+
+  List<RouteOption> _deriveAlternativesFromSingleRoute(
+    RouteOption base,
+    double temp,
+    double humidity,
+  ) {
+    final shade = base.shadePercentage ?? 0.25;
+    final covered = base.coveredPercentage;
+    return [
+      _copyRouteOption(
+        base,
+        id: 'fastest',
+        name: 'Fastest',
+        shadePercentage: shade,
+        coveredPercentage: covered,
+        comfortScore: _calculateComfortScore(
+          temp: temp,
+          humidity: humidity,
+          shadePercent: shade,
+          coveredPercent: covered,
+          timePenalty: 0,
+        ),
+        description: 'Shortest available walking path from the route engine.',
+      ),
+      _copyRouteOption(
+        base,
+        id: 'coolest',
+        name: 'Coolest',
+        duration: Duration(seconds: (base.duration.inSeconds * 1.12).round()),
+        shadePercentage: (shade + 0.18).clamp(0.0, 1.0),
+        coveredPercentage: covered,
+        comfortScore: _calculateComfortScore(
+          temp: temp,
+          humidity: humidity,
+          shadePercent: (shade + 0.18).clamp(0.0, 1.0),
+          coveredPercent: covered,
+          timePenalty: 0.05,
+        ),
+        description: 'Comfort-weighted option using available shade signals.',
+      ),
+      _copyRouteOption(
+        base,
+        id: 'covered',
+        name: 'Covered',
+        duration: Duration(seconds: (base.duration.inSeconds * 1.08).round()),
+        shadePercentage: shade,
+        coveredPercentage: (covered + 0.15).clamp(0.0, 1.0),
+        comfortScore: _calculateComfortScore(
+          temp: temp,
+          humidity: humidity,
+          shadePercent: shade,
+          coveredPercent: (covered + 0.15).clamp(0.0, 1.0),
+          timePenalty: 0.04,
+        ),
+        description: 'Prioritizes covered or lower-exposure segments.',
+      ),
+      _copyRouteOption(
+        base,
+        id: 'balanced',
+        name: 'Balanced',
+        duration: Duration(seconds: (base.duration.inSeconds * 1.05).round()),
+        shadePercentage: (shade + 0.08).clamp(0.0, 1.0),
+        coveredPercentage: (covered + 0.08).clamp(0.0, 1.0),
+        comfortScore: _calculateComfortScore(
+          temp: temp,
+          humidity: humidity,
+          shadePercent: (shade + 0.08).clamp(0.0, 1.0),
+          coveredPercent: (covered + 0.08).clamp(0.0, 1.0),
+          timePenalty: 0.03,
+        ),
+        description: 'Balanced trade-off across time, shade, and comfort.',
+      ),
+    ];
+  }
+
+  RouteOption _copyRouteOption(
+    RouteOption base, {
+    required String id,
+    required String name,
+    Duration? duration,
+    double? shadePercentage,
+    double? coveredPercentage,
+    int? comfortScore,
+    String? description,
+  }) {
+    return RouteOption(
+      id: id,
+      name: name,
+      duration: duration ?? base.duration,
+      distance: base.distance,
+      shadePercentage: shadePercentage ?? base.shadePercentage,
+      coveredPercentage: coveredPercentage ?? base.coveredPercentage,
+      comfortScore: comfortScore ?? base.comfortScore,
+      description: description ?? base.description,
+      segments: base.segments,
+    );
+  }
+
+  List<RouteOption> _buildFallbackRoutes({
+    required double startLat,
+    required double startLng,
+    required double endLat,
+    required double endLng,
+    required double currentTemp,
+    required double currentHumidity,
+  }) {
+    RouteOption buildOption({
+      required String id,
+      required String name,
+      required double offset,
+      required double shade,
+      required double covered,
+      required double durationFactor,
+      required String description,
+    }) {
+      final segments = _buildFallbackSegments(
+        startLat: startLat,
+        startLng: startLng,
+        endLat: endLat,
+        endLng: endLng,
+        offset: offset,
+        shade: shade,
+        covered: covered,
+      );
+      final distance = segments.fold<double>(
+        0,
+        (total, segment) => total + segment.length,
+      );
+      final duration = Duration(
+        seconds: math.max(120, (distance / 1.25 * durationFactor).round()),
+      );
+      final comfortScore = _calculateComfortScore(
+        temp: currentTemp,
+        humidity: currentHumidity,
+        shadePercent: shade,
+        coveredPercent: covered,
+        timePenalty: math.max(0, durationFactor - 1) * 0.08,
+      );
+
+      return RouteOption(
+        id: id,
+        name: name,
+        duration: duration,
+        distance: distance,
+        shadePercentage: shade,
+        coveredPercentage: covered,
+        comfortScore: comfortScore,
+        description: description,
+        segments: segments,
+      );
+    }
+
+    return [
+      buildOption(
+        id: 'fastest',
+        name: 'Fastest',
+        offset: 0,
+        shade: 0.2,
+        covered: 0.05,
+        durationFactor: 1,
+        description: 'Direct estimated path between the selected places.',
+      ),
+      buildOption(
+        id: 'coolest',
+        name: 'Coolest',
+        offset: 0.0015,
+        shade: 0.55,
+        covered: 0.12,
+        durationFactor: 1.18,
+        description: 'Estimated comfort path favoring shaded streets.',
+      ),
+      buildOption(
+        id: 'covered',
+        name: 'Covered',
+        offset: -0.0012,
+        shade: 0.48,
+        covered: 0.35,
+        durationFactor: 1.14,
+        description: 'Estimated path favoring covered walkways and shelter.',
+      ),
+      buildOption(
+        id: 'balanced',
+        name: 'Balanced',
+        offset: 0.0008,
+        shade: 0.4,
+        covered: 0.22,
+        durationFactor: 1.08,
+        description: 'Balanced estimated path for time and heat comfort.',
+      ),
+    ];
+  }
+
+  List<RouteSegment> _buildFallbackSegments({
+    required double startLat,
+    required double startLng,
+    required double endLat,
+    required double endLng,
+    required double offset,
+    required double shade,
+    required double covered,
+  }) {
+    final midLat = (startLat + endLat) / 2 + offset;
+    final midLng = (startLng + endLng) / 2 - offset;
+    final firstType = covered > 0.25
+        ? SegmentType.covered
+        : shade > 0.45
+        ? SegmentType.shaded
+        : SegmentType.exposed;
+    final secondType = shade > 0.35 ? SegmentType.shaded : SegmentType.unknown;
+
+    return [
+      RouteSegment(
+        startLat: startLat,
+        startLng: startLng,
+        endLat: midLat,
+        endLng: midLng,
+        type: firstType,
+        length: _haversineDistance(startLat, startLng, midLat, midLng),
+      ),
+      RouteSegment(
+        startLat: midLat,
+        startLng: midLng,
+        endLat: endLat,
+        endLng: endLng,
+        type: secondType,
+        length: _haversineDistance(midLat, midLng, endLat, endLng),
       ),
     ];
   }
@@ -386,10 +859,11 @@ class RoutingService {
     const double wShade = 0.30;
     const double wCov = 0.30;
 
-    double weightedAverage = (tempFactor * wTemp) +
-                             (humidityFactor * wHum) +
-                             (shadePercent * wShade) +
-                             (coveredPercent * wCov);
+    double weightedAverage =
+        (tempFactor * wTemp) +
+        (humidityFactor * wHum) +
+        (shadePercent * wShade) +
+        (coveredPercent * wCov);
 
     // Deduct penalty for longer travel times
     double finalScore = (weightedAverage - timePenalty) * 100;
@@ -398,7 +872,8 @@ class RoutingService {
 
   /// Overpass API query executor to fetch building layouts & tree rows
   Future<List<dynamic>> _fetchOSMFeatures(String bbox) async {
-    final String query = '''
+    final String query =
+        '''
     [out:json][timeout:15];
     (
       way[covered=yes]($bbox);
@@ -408,7 +883,7 @@ class RoutingService {
       way[natural=tree_row]($bbox);
       way[building]($bbox);
     );
-    out body;
+    out body geom;
     >;
     out skel qt;
     ''';
@@ -432,8 +907,12 @@ class RoutingService {
 
   /// Helper to check if a route segment lies near any matching OSM features (buildings, trees, covered walks)
   SegmentType _determineSegmentType(
-    double sLat, double sLng, double eLat, double eLng,
-    List<dynamic> osmFeatures, SunPosition sunPos
+    double sLat,
+    double sLng,
+    double eLat,
+    double eLng,
+    List<dynamic> osmFeatures,
+    SunPosition sunPos,
   ) {
     if (osmFeatures.isEmpty) {
       return SegmentType.unknown;
@@ -464,6 +943,17 @@ class RoutingService {
         if (bounds != null) {
           fLat = ((bounds['minlat'] as num) + (bounds['maxlat'] as num)) / 2.0;
           fLng = ((bounds['minlon'] as num) + (bounds['maxlon'] as num)) / 2.0;
+        } else if (element['geometry'] is List) {
+          final geometry = element['geometry'] as List<dynamic>;
+          if (geometry.isEmpty) continue;
+          double latSum = 0;
+          double lngSum = 0;
+          for (final point in geometry) {
+            latSum += (point['lat'] as num).toDouble();
+            lngSum += (point['lon'] as num).toDouble();
+          }
+          fLat = latSum / geometry.length;
+          fLng = lngSum / geometry.length;
         } else {
           continue;
         }
@@ -473,7 +963,9 @@ class RoutingService {
       if (distance > 25.0) continue; // Skip features further than 25m
 
       // Check covered walkways
-      if (tags['covered'] == 'yes' || tags['tunnel'] == 'yes' || tags['building'] == 'roof') {
+      if (tags['covered'] == 'yes' ||
+          tags['tunnel'] == 'yes' ||
+          tags['building'] == 'roof') {
         nearCovered = true;
         break; // Covered takes priority
       }
@@ -506,7 +998,8 @@ class RoutingService {
       // and building is east of the segment center, it casts a shadow on it
       double dLat = buildingLat - midLat;
       double dLng = buildingLng - midLng;
-      double buildingAngle = (math.atan2(dLng, dLat) * 180.0 / math.pi) % 360.0;
+      double buildingAngle =
+          (math.atan2(dLng, dLat) * 180.0 / math.pi + 360.0) % 360.0;
 
       // Calculate difference between solar azimuth and building position angle
       double diff = (sunPos.azimuth - buildingAngle).abs();
@@ -532,13 +1025,21 @@ class RoutingService {
   }
 
   /// Distance helper
-  double _haversineDistance(double lat1, double lon1, double lat2, double lon2) {
+  double _haversineDistance(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
     const double R = 6371000;
     final double dLat = (lat2 - lat1) * math.pi / 180.0;
     final double dLon = (lon2 - lon1) * math.pi / 180.0;
-    final double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(lat1 * math.pi / 180.0) * math.cos(lat2 * math.pi / 180.0) *
-        math.sin(dLon / 2) * math.sin(dLon / 2);
+    final double a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(lat1 * math.pi / 180.0) *
+            math.cos(lat2 * math.pi / 180.0) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
     final double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
     return R * c;
   }

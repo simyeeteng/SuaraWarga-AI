@@ -29,7 +29,6 @@ import '../features/walkability/presentation/pages/walkability_page.dart';
 
 // Voice
 import '../features/voice/presentation/pages/listening_page.dart';
-import '../features/voice/presentation/pages/processing_page.dart';
 
 class SuaraWargaApp extends StatelessWidget {
   const SuaraWargaApp({super.key});
@@ -66,7 +65,6 @@ class SuaraWargaApp extends StatelessWidget {
         AppRoutes.transitGuide: (_) => const PublicTransportPage(),
         AppRoutes.walkability: (_) => const WalkabilityPage(),
         AppRoutes.listening: (_) => const ListeningPage(),
-        AppRoutes.processing: (_) => const ProcessingPage(),
       },
     );
   }
