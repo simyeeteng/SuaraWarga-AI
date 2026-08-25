@@ -137,11 +137,32 @@ The collected insights can improve mobility recommendations while providing usef
 
 # Technology Stack
 ## Frontend
+- Flutter Web
+- Provider (State Management)
+- Supabase Flutter Client (Cloud Checklist Sync)
+
 ## Architecture
+- Client-Server Architecture (Flutter + FastAPI)
+- State-driven declarative UI
+
 ## Backend
+- FastAPI (Python)
+- Google Generative AI (Gemini 3.6 Flash)
+- Supabase Python Client (RLS & Database Sync)
+
 ## Database
+- Supabase (PostgreSQL)
+  - `checklists` table (UUID, Document Type, Title)
+  - `checklist_items` table (Task breakdown, Status, Deadlines)
+  - Row-Level Security (RLS) configured
+
 ## APIs
+- Gemini API (`gemini-3.6-flash` for Document Analysis)
+- Supabase API (Checklist Storage)
+
 ## Deployment
+- Frontend: Web Build
+- Backend: Uvicorn Local / Cloud Hosting
 
 # System Overview
 

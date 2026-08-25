@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/services/app_state.dart';
@@ -31,13 +33,60 @@ class _LetterInterpreterPageState extends State<LetterInterpreterPage> {
         maxHeight: 2048,
       );
       if (picked != null && mounted) {
-        await appState.processDocument(picked.path);
+        if (kIsWeb) {
+          final bytes = await picked.readAsBytes();
+          await appState.processDocument(
+            picked.path,
+            fileBytes: bytes,
+            mimeType: 'image/jpeg',
+          );
+        } else {
+          await appState.processDocument(picked.path);
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Could not open ${source == ImageSource.camera ? "camera" : "gallery"}: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickFile(AppState appState) async {
+    try {
+      List<PlatformFile>? files = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'],
+        withData: true,
+      );
+
+      if (files != null && files.isNotEmpty && mounted) {
+        final platformFile = files.first;
+        final bytes = await platformFile.readAsBytes();
+        final extension = platformFile.name.contains('.') 
+            ? platformFile.name.split('.').last.toLowerCase() 
+            : 'unknown';
+        
+        String mimeType = 'application/octet-stream';
+        if (extension == 'pdf') mimeType = 'application/pdf';
+        else if (extension == 'png') mimeType = 'image/png';
+        else if (extension == 'jpg' || extension == 'jpeg') mimeType = 'image/jpeg';
+        
+        await appState.processDocument(
+          platformFile.path ?? platformFile.name,
+          fileBytes: bytes,
+          mimeType: mimeType,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open file picker: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -148,22 +197,23 @@ class _LetterInterpreterPageState extends State<LetterInterpreterPage> {
     final appState = Provider.of<AppState>(context);
     final String viewState = appState.letterInterpreterState;
 
-    return Scaffold(
-      body: Column(
-        children: [
-          CustomHeader(
-            title: appState.translate('letterTitle'),
-            subtitle: appState.translate('letterSubtitle'),
-            onBack: () {
-              if (appState.documentProcessingError != null) {
-                appState.processDocument(''); // Reset error
-              } else if (viewState == 'result') {
-                appState.setLetterInterpreterState('upload');
-              } else {
+    return PopScope(
+      canPop: true,
+      onPopInvoked: (didPop) {
+        Future.microtask(() {
+          appState.resetLetterInterpreter();
+        });
+      },
+      child: Scaffold(
+        body: Column(
+          children: [
+            CustomHeader(
+              title: appState.translate('letterTitle'),
+              subtitle: appState.translate('letterSubtitle'),
+              onBack: () {
                 Navigator.pop(context);
-              }
-            },
-          ),
+              },
+            ),
           
           // Accessibility Top Bar (Text +/- size scaling)
           _buildAccessibilityBar(appState),
@@ -179,8 +229,9 @@ class _LetterInterpreterPageState extends State<LetterInterpreterPage> {
           )
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildAccessibilityBar(AppState appState) {
     return Container(
@@ -256,7 +307,7 @@ class _LetterInterpreterPageState extends State<LetterInterpreterPage> {
                     children: [
                       Icon(Icons.check_circle_rounded, color: Colors.green, size: 18),
                       SizedBox(width: 8),
-                      Text('1. Reading document text (OCR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF475569))),
+                      Text('1. Scanning document...', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF475569))),
                     ],
                   ),
                   SizedBox(height: 8),
@@ -323,7 +374,7 @@ class _LetterInterpreterPageState extends State<LetterInterpreterPage> {
           const SizedBox(height: 24),
           // Good vs Bad photo visual example
           const Text(
-            'Photo Guidelines for Best OCR Results:',
+            'Document Guidelines for Best AI Results:',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF475569)),
           ),
           const SizedBox(height: 12),
@@ -451,7 +502,7 @@ class _LetterInterpreterPageState extends State<LetterInterpreterPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: InkWell(
-                      onTap: () => _pickImage(appState, ImageSource.gallery),
+                      onTap: () => _pickFile(appState),
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 20),
@@ -478,7 +529,7 @@ class _LetterInterpreterPageState extends State<LetterInterpreterPage> {
               const SizedBox(height: 16),
               const Row(
                 children: [
-                  AITag(label: 'OCR'),
+                  AITag(label: 'Vision AI'),
                   SizedBox(width: 6),
                   AITag(label: 'LLM'),
                   SizedBox(width: 12),
@@ -1074,6 +1125,43 @@ class _LetterInterpreterPageState extends State<LetterInterpreterPage> {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF2563EB),
                     side: const BorderSide(color: Color(0xFFBFDBFE), width: 2),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: SizedBox(
+                height: 56,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final success = await appState.saveChecklistToCloud(doc);
+                    if (mounted) {
+                      if (success) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Added to Checklist!', style: TextStyle(fontWeight: FontWeight.bold)),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                        // Redirect to Checklist Page
+                        Navigator.pushNamed(context, '/checklist');
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Failed to save', style: TextStyle(fontWeight: FontWeight.bold)),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.cloud_upload_rounded),
+                  label: const Text('Add to Checklist'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                 ),

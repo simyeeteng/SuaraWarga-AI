@@ -31,7 +31,7 @@ dependencies:
   # Camera & OCR
   camera: ^0.10.5
   google_ml_kit: ^0.16.0
-  image_picker: ^1.1.2
+  image_picker: ^1.2.3
   
   # Maps & Location
   google_maps_flutter: ^2.5.3
@@ -40,6 +40,9 @@ dependencies:
   # Utilities
   intl: ^0.18.1
   url_launcher: ^6.2.1
+  cross_file: ^0.3.5+4
+  file_picker: ^12.0.0
+  supabase_flutter: ^2.17.2
 
 dev_dependencies:
   flutter_test:

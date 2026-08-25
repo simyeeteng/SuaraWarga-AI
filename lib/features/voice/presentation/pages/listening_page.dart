@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -172,7 +174,7 @@ class _ListeningPageState extends State<ListeningPage>
     });
   }
 
-  void _finishListening(AppState appState, String transcript) {
+  Future<void> _finishListening(AppState appState, String transcript) async {
     final cleanTranscript = transcript.trim();
     if (_isFinishing || cleanTranscript.isEmpty) return;
 
@@ -180,10 +182,30 @@ class _ListeningPageState extends State<ListeningPage>
     _listenTimeoutTimer?.cancel();
     unawaited(_speech.stop());
 
-    final intent = AppConstants.intentForTranscript(
-      cleanTranscript,
-      appState.voiceLanguage,
-    );
+    VoiceIntent intent;
+    try {
+      final dio = Dio();
+      final String baseUrl = !kIsWeb && defaultTargetPlatform == TargetPlatform.android ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
+      final response = await dio.post(
+        '$baseUrl/api/intent',
+        data: {'transcript': cleanTranscript, 'language': appState.voiceLanguage},
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        final String targetScreen = response.data['targetScreen'] ?? 'home';
+        intent = AppConstants.VOICE_INTENTS.firstWhere(
+          (i) => i.targetScreen == targetScreen && 
+                 (i.detectedLang.toLowerCase() == appState.voiceLanguage.toLowerCase() ||
+                 (appState.voiceLanguage.toLowerCase().contains('mandarin') && i.detectedLang == 'Mandarin') ||
+                 (appState.voiceLanguage.toLowerCase().contains('chinese') && i.detectedLang == 'Mandarin')),
+          orElse: () => AppConstants.VOICE_UNMATCHED_INTENT,
+        );
+      } else {
+        intent = AppConstants.intentForTranscript(cleanTranscript, appState.voiceLanguage);
+      }
+    } catch (e) {
+      debugPrint('Backend intent error: $e');
+      intent = AppConstants.intentForTranscript(cleanTranscript, appState.voiceLanguage);
+    }
 
     if (intent.targetScreen == 'home') {
       _isFinishing = false;

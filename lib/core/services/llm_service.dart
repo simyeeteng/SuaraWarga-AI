@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 class LlmResult {
   final String documentType;
@@ -87,6 +89,50 @@ class LlmService {
   /// runs automated scam detection, merges verified rules, and returns structured data.
   /// No hallucination of government facts is allowed.
   Future<LlmResult> analyzeDocument(
+    String ocrText,
+    Map<String, dynamic> rulesTable,
+    Map<String, dynamic> contactsTable,
+  ) async {
+    try {
+      final dio = Dio();
+      final String baseUrl = !kIsWeb && defaultTargetPlatform == TargetPlatform.android ? 'http://10.0.2.2:8000' : 'http://127.0.0.1:8000';
+      final response = await dio.post(
+        '$baseUrl/api/analyze-document',
+        data: {'ocr_text': ocrText},
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        return LlmResult.fromJson(response.data);
+      }
+    } catch (e) {
+      debugPrint('Backend LLM error, falling back to local: $e');
+    }
+
+    return await _analyzeLocalFallback(ocrText, rulesTable, contactsTable);
+  }
+
+  Future<LlmResult> analyzeDocumentWithFile(
+    String fileBase64,
+    String mimeType,
+    Map<String, dynamic> rulesTable,
+    Map<String, dynamic> contactsTable,
+  ) async {
+    try {
+      final dio = Dio();
+      final String baseUrl = !kIsWeb && defaultTargetPlatform == TargetPlatform.android ? 'http://10.0.2.2:8000' : 'http://127.0.0.1:8000';
+      final response = await dio.post(
+        '$baseUrl/api/analyze-document',
+        data: {'file_base64': fileBase64, 'mime_type': mimeType},
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        return LlmResult.fromJson(response.data);
+      }
+    } catch (e) {
+      debugPrint('Backend LLM file error, falling back to local: $e');
+    }
+    return await _analyzeLocalFallback('Unreadable web file', rulesTable, contactsTable);
+  }
+
+  Future<LlmResult> _analyzeLocalFallback(
     String ocrText,
     Map<String, dynamic> rulesTable,
     Map<String, dynamic> contactsTable,

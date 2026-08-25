@@ -45,6 +45,14 @@ class GovernmentServicesPage extends StatelessWidget {
         'tags': ['AI Checklist'],
         'route': AppRoutes.docChecker,
       },
+      {
+        'icon': Icons.cloud_done_rounded,
+        'title': 'My Checklist',
+        'desc': 'View and manage tasks saved from your letters',
+        'colors': [const Color(0xFF0D9488), const Color(0xFF0F766E)], // teal
+        'tags': ['Cloud Sync'],
+        'route': '/checklist',
+      },
     ];
 
     return Scaffold(
@@ -161,9 +169,9 @@ class GovernmentServicesPage extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    appState.translate(
-                                      svc['titleKey'] as String,
-                                    ),
+                                    svc.containsKey('titleKey') 
+                                        ? appState.translate(svc['titleKey'] as String) 
+                                        : svc['title'] as String,
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w900,
@@ -173,9 +181,9 @@ class GovernmentServicesPage extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    appState.translate(
-                                      svc['descKey'] as String,
-                                    ),
+                                    svc.containsKey('descKey') 
+                                        ? appState.translate(svc['descKey'] as String) 
+                                        : svc['desc'] as String,
                                     style: const TextStyle(
                                       fontSize: 13,
                                       color: Color(0xFF64748B),

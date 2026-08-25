@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/constants.dart';
@@ -7,6 +9,7 @@ import '../utils/solar_calculator.dart';
 import 'translation_service.dart';
 import 'ocr_service.dart';
 import 'llm_service.dart';
+import 'checklist_service.dart';
 import 'routing_service.dart';
 import 'weather_service.dart';
 import 'transit_service.dart';
@@ -271,6 +274,7 @@ class AppState extends ChangeNotifier {
   // --- NEW DYNAMIC DOCUMENT CHECKER & INTERPRETER PIPELINE STATE ---
   final OcrService _ocrService = OcrService();
   final LlmService _llmService = LlmService();
+  final ChecklistService _checklistService = ChecklistService();
 
   Map<String, dynamic> _documentRules = {};
   Map<String, dynamic> _governmentDirectory = {};
@@ -400,22 +404,38 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void resetLetterInterpreter() {
+    _documentProcessingError = null;
+    _letterInterpreterState = 'upload';
+    _activeScannedDocument = null;
+    notifyListeners();
+  }
+
   /// Entry point for upload/capture. Runs OCR, calls LLM analyzer, merges rules
-  Future<void> processDocument(String filePath) async {
+  Future<void> processDocument(String filePath, {Uint8List? fileBytes, String mimeType = 'image/jpeg'}) async {
     _isProcessingDocument = true;
     _documentProcessingError = null;
     notifyListeners();
 
     try {
-      // 1. OCR text extraction
-      final String rawText = await _ocrService.performOcr(filePath);
-
-      // 2. LLM classification & facts merging
-      final LlmResult result = await _llmService.analyzeDocument(
-        rawText,
-        _documentRules,
-        _verificationContacts,
-      );
+      final LlmResult result;
+      String rawText = '';
+      if (fileBytes != null && kIsWeb) {
+        final base64Image = base64Encode(fileBytes);
+        result = await _llmService.analyzeDocumentWithFile(
+          base64Image,
+          mimeType,
+          _documentRules,
+          _verificationContacts,
+        );
+      } else {
+        rawText = await _ocrService.performOcr(filePath);
+        result = await _llmService.analyzeDocument(
+          rawText,
+          _documentRules,
+          _verificationContacts,
+        );
+      }
 
       // 3. Construct scanned document record
       final String docId = 'doc_${DateTime.now().millisecondsSinceEpoch}';
@@ -467,6 +487,18 @@ class AppState extends ChangeNotifier {
       notifyListeners();
       rethrow;
     }
+  }
+
+  Future<bool> saveChecklistToCloud(Map<String, dynamic> doc) async {
+    if (doc['checklist'] == null || (doc['checklist'] as List).isEmpty) return false;
+    
+    final items = (doc['checklist'] as List).map((i) => i['item'].toString()).toList();
+    
+    return await _checklistService.createChecklistFromDocument(
+      documentType: doc['doc_type'] ?? 'Unknown Document',
+      title: doc['title'] ?? 'Generated Checklist',
+      items: items,
+    );
   }
 
   /// Processes raw pasted document text (e.g. from emails)
