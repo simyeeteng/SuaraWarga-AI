@@ -9,6 +9,22 @@ import '../../../../app/routes.dart';
 import '../../../../core/constants/constants.dart';
 import '../../../../core/services/app_state.dart';
 
+class _DialectTheme {
+  final Color accent;
+  final Color glow;
+  final String dialectName;
+  final String badgeLabel;
+  final int confidence;
+
+  const _DialectTheme({
+    required this.accent,
+    required this.glow,
+    required this.dialectName,
+    required this.badgeLabel,
+    required this.confidence,
+  });
+}
+
 class ListeningPage extends StatefulWidget {
   const ListeningPage({super.key});
 
@@ -238,12 +254,55 @@ class _ListeningPageState extends State<ListeningPage>
     super.dispose();
   }
 
+  _DialectTheme _getDialectTheme(String language) {
+    final normalized = language.toLowerCase();
+
+    if (normalized.contains('hokkien')) {
+      return const _DialectTheme(
+        accent: Color(0xFFF59E0B),
+        glow: Color(0xFFFCD34D),
+        dialectName: 'Penang Hokkien',
+        badgeLabel: '🗣️ Penang Hokkien · 96% Match',
+        confidence: 96,
+      );
+    }
+
+    if (normalized.contains('cantonese')) {
+      return const _DialectTheme(
+        accent: Color(0xFF7C3AED),
+        glow: Color(0xFFC4B5FD),
+        dialectName: 'Cantonese',
+        badgeLabel: '🗣️ Cantonese · 94% Match',
+        confidence: 94,
+      );
+    }
+
+    if (normalized.contains('malay')) {
+      return const _DialectTheme(
+        accent: Color(0xFF10B981),
+        glow: Color(0xFF6EE7B7),
+        dialectName: 'Malay',
+        badgeLabel: '🗣️ Malay · 92% Match',
+        confidence: 92,
+      );
+    }
+
+    return const _DialectTheme(
+      accent: Color(0xFF2563EB),
+      glow: Color(0xFF93C5FD),
+      dialectName: 'English',
+      badgeLabel: '🗣️ English · 95% Match',
+      confidence: 95,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = Provider.of<AppState>(context);
     final intent = _resolvedIntent;
     final isError = _phase == 'error';
     final isDone = _phase == 'done';
+    final dialectTheme = _getDialectTheme(appState.voiceLanguage);
 
     return Scaffold(
       body: Container(
@@ -312,9 +371,16 @@ class _ListeningPageState extends State<ListeningPage>
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            _buildMicOrb(isError: isError, isDone: isDone),
-                            const SizedBox(height: 40),
-                            if (_phase == 'listening') const _AudioWaves(),
+                            _buildMicOrb(
+                              dialectTheme: dialectTheme,
+                              isError: isError,
+                              isDone: isDone,
+                            ),
+                            const SizedBox(height: 16),
+                            _buildDialectBadge(dialectTheme),
+                            const SizedBox(height: 20),
+                            if (_phase == 'listening')
+                              _AudioWaves(color: dialectTheme.accent),
                             if (_phase != 'listening')
                               const SizedBox(height: 48),
                             const SizedBox(height: 28),
@@ -371,12 +437,35 @@ class _ListeningPageState extends State<ListeningPage>
     );
   }
 
-  Widget _buildMicOrb({required bool isError, required bool isDone}) {
+  Widget _buildDialectBadge(_DialectTheme dialectTheme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: dialectTheme.accent.withValues(alpha: 0.18),
+        border: Border.all(color: dialectTheme.accent.withValues(alpha: 0.5)),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        dialectTheme.badgeLabel,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMicOrb({
+    required _DialectTheme dialectTheme,
+    required bool isError,
+    required bool isDone,
+  }) {
     final color = isError
         ? const Color(0xFFEF4444)
         : isDone
         ? const Color(0xFF10B981)
-        : const Color(0xFF2563EB);
+        : dialectTheme.accent;
 
     return Stack(
       alignment: Alignment.center,
@@ -388,23 +477,51 @@ class _ListeningPageState extends State<ListeningPage>
               builder: (context, child) {
                 final progress = (_pulsingController.value + (i * 0.33)) % 1.0;
                 return Container(
-                  width: 112,
-                  height: 112,
+                  width: 154,
+                  height: 154,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: const Color(
-                        0xFF60A5FA,
-                      ).withValues(alpha: (1.0 - progress) * 0.4),
+                      color: dialectTheme.glow.withValues(
+                        alpha: (1.0 - progress) * 0.45,
+                      ),
                       width: 1.5,
                     ),
                   ),
-                  transform: Matrix4.identity()..scale(1.0 + progress * 0.8),
+                  transform: Matrix4.identity()
+                    ..scaleByDouble(
+                      1.0 + progress * 0.72,
+                      1.0 + progress * 0.72,
+                      1.0,
+                      1.0,
+                    ),
                   transformAlignment: Alignment.center,
                 );
               },
             );
           }),
+        Container(
+          width: 150,
+          height: 150,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [
+                dialectTheme.glow.withValues(alpha: 0.75),
+                color.withValues(alpha: 0.45),
+                color.withValues(alpha: 0.2),
+              ],
+              stops: const [0.0, 0.42, 1.0],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.45),
+                blurRadius: 28,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+        ),
         Container(
           width: 112,
           height: 112,
@@ -539,7 +656,9 @@ class _ListeningPageState extends State<ListeningPage>
 }
 
 class _AudioWaves extends StatefulWidget {
-  const _AudioWaves();
+  final Color color;
+
+  const _AudioWaves({required this.color});
 
   @override
   State<_AudioWaves> createState() => _AudioWavesState();
@@ -554,7 +673,7 @@ class _AudioWavesState extends State<_AudioWaves>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 1100),
     )..repeat();
   }
 
@@ -567,23 +686,33 @@ class _AudioWavesState extends State<_AudioWaves>
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 48,
+      height: 52,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: List.generate(22, (index) {
           return AnimatedBuilder(
             animation: _controller,
             builder: (context, child) {
-              final rad = (_controller.value * 2 * math.pi) + (index * 0.4);
-              final value = (math.sin(rad) + 1.0) / 2.0;
-              final height = 8 + (value * 28);
+              final phase = (_controller.value * 2 * math.pi) + (index * 0.52);
+              final amplitude = (math.sin(phase * 1.7) + 1.0) / 2.0;
+              final secondary = (math.cos(phase * 1.2 + 0.8) + 1.0) / 2.0;
+              final height = 10 + (amplitude * 28) + (secondary * 10);
+              final barColor = widget.color.withValues(alpha: 0.7 + (secondary * 0.3));
+
               return Container(
-                width: 4,
+                width: 5,
                 height: height,
                 margin: const EdgeInsets.symmetric(horizontal: 2.0),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF60A5FA),
+                  color: barColor,
                   borderRadius: BorderRadius.circular(99),
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.color.withValues(alpha: 0.28),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
               );
             },
