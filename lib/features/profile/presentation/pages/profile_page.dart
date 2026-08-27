@@ -473,7 +473,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         child: Row(
                           children: [
-                            const AITag(label: 'Dialect AI'),
+                            const AITag(label: 'Locale-aware ASR'),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -951,10 +951,14 @@ class _ProfilePageState extends State<ProfilePage> {
                   width: double.infinity,
                   height: 56,
                   child: OutlinedButton(
-                    onPressed: () => Navigator.pushNamed(context, '/rules-admin'),
+                    onPressed: () =>
+                        Navigator.pushNamed(context, '/rules-admin'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF2563EB),
-                      side: const BorderSide(color: Color(0xFFBFDBFE), width: 2),
+                      side: const BorderSide(
+                        color: Color(0xFFBFDBFE),
+                        width: 2,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -966,7 +970,10 @@ class _ProfilePageState extends State<ProfilePage> {
                         const SizedBox(width: 8),
                         Text(
                           appState.translate('adminSettings'),
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                       ],
                     ),
@@ -987,7 +994,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       SizedBox(height: 2),
                       Text(
-                        'Powered by ASR · Dialect AI · NLP · LLM · Computer Vision',
+                        'Powered by locale-aware ASR · NLP · Computer Vision',
                         style: TextStyle(
                           fontSize: 10,
                           color: Color(0xFFCBD5E1),
