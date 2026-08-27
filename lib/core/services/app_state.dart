@@ -249,14 +249,18 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  VoiceCommand? consumePendingVoiceCommand() {
-    final command = _pendingVoiceCommand;
-    if (command == null) return null;
-
+  void clearVoiceHandoff() {
     _pendingVoiceCommand = null;
     _pendingIntent = AppConstants.VOICE_UNMATCHED_INTENT;
     _latestVoiceTranscript = '';
     notifyListeners();
+  }
+
+  VoiceCommand? consumePendingVoiceCommand() {
+    final command = _pendingVoiceCommand;
+    if (command == null) return null;
+
+    clearVoiceHandoff();
     return command;
   }
 

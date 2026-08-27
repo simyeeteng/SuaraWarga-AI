@@ -7,6 +7,7 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../../../../app/routes.dart';
 import '../../../../core/constants/constants.dart';
+import '../../../../core/models/voice_command.dart';
 import '../../../../core/services/app_state.dart';
 import '../../../../core/services/voice_command_parser.dart';
 import '../../../../core/services/voice_locale_resolver.dart';
@@ -227,7 +228,11 @@ class _ListeningPageState extends State<ListeningPage>
       return;
     }
 
-    appState.setVoiceHandoff(command: command, intent: intent);
+    if (command.target == VoiceCommandTarget.tropicalRoute) {
+      appState.setVoiceHandoff(command: command, intent: intent);
+    } else {
+      appState.clearVoiceHandoff();
+    }
 
     if (!mounted) return;
     setState(() {
