@@ -141,9 +141,7 @@ class TtsLocaleResolver {
       final match = availableByLocale[normalizeLocaleId(candidate)];
       if (match != null) return match;
     }
-    return availableByLocale.values.isNotEmpty
-        ? availableByLocale.values.first
-        : null;
+    return null;
   }
 
   static String _labelForResolvedLocale({

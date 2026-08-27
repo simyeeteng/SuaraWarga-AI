@@ -125,6 +125,39 @@ void main() {
       expect(result.resolvedLanguageLabel, 'English fallback');
     });
 
+    test('Tamil with unrelated voices is unavailable', () {
+      final result = TtsLocaleResolver.resolve(
+        voiceMode: 'Tamil',
+        availableLocales: ['ja-JP'],
+      );
+
+      expect(result.resolvedLocale, isNull);
+      expect(result.hasAvailableLocale, isFalse);
+      expect(result.resolvedLanguageLabel, 'Unavailable');
+    });
+
+    test('Hokkien with unrelated voices is unavailable', () {
+      final result = TtsLocaleResolver.resolve(
+        voiceMode: 'Hokkien',
+        availableLocales: ['ko-KR'],
+      );
+
+      expect(result.resolvedLocale, isNull);
+      expect(result.hasAvailableLocale, isFalse);
+      expect(result.resolvedLanguageLabel, 'Unavailable');
+    });
+
+    test('Mandarin can use installed English fallback', () {
+      final result = TtsLocaleResolver.resolve(
+        voiceMode: 'Mandarin',
+        availableLocales: ['en-GB'],
+      );
+
+      expect(result.resolvedLocale, 'en-GB');
+      expect(result.usedFallback, isTrue);
+      expect(result.resolvedLanguageLabel, 'English fallback');
+    });
+
     test('no available language returns unavailable result', () {
       final result = TtsLocaleResolver.resolve(
         voiceMode: 'English',

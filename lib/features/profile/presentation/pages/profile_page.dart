@@ -27,7 +27,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _previewVoiceSpeed(AppState appState, double rate) async {
     appState.setVoiceSpeed(rate);
-    await _ttsService.stop();
 
     final previewKey = rate < 1
         ? 'voiceSpeedPreviewSlow'
@@ -43,13 +42,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
     if (!mounted) return;
     if (!result.success) {
+      if (result.failureReason == TtsFailureReason.cancelled) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            result.errorMessage ??
-                appState.translate('voicePreviewUnavailable'),
-          ),
-        ),
+        SnackBar(content: Text(appState.translate('voicePreviewUnavailable'))),
       );
       return;
     }

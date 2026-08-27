@@ -3,13 +3,15 @@ import 'package:flutter_tts/flutter_tts.dart';
 
 import 'tts_locale_resolver.dart';
 
+enum TtsFailureReason { noSupportedLocale, engineFailure, cancelled }
+
 class TtsSpeakResult {
   final bool success;
   final String requestedVoiceMode;
   final String? resolvedLocale;
   final String resolvedLanguageLabel;
   final bool usedFallback;
-  final String? errorMessage;
+  final TtsFailureReason? failureReason;
 
   const TtsSpeakResult({
     required this.success,
@@ -17,7 +19,7 @@ class TtsSpeakResult {
     required this.resolvedLocale,
     required this.resolvedLanguageLabel,
     required this.usedFallback,
-    this.errorMessage,
+    this.failureReason,
   });
 }
 
@@ -28,15 +30,12 @@ class TtsService {
   final FlutterTts _flutterTts = FlutterTts();
   bool _isSpeaking = false;
   List<String>? _cachedLanguages;
+  int _requestGeneration = 0;
 
   bool get isSpeaking => _isSpeaking;
 
   TtsService._internal() {
     _initTts();
-  }
-
-  static String ttsLocaleFor(String langCode) {
-    return TtsLocaleResolver.candidatesForVoiceMode(langCode).first;
   }
 
   static double speechRateForSpeed(double speed) {
@@ -85,11 +84,19 @@ class TtsService {
   }) async {
     final cleanText = text.trim();
     final requestedMode = langCode.trim();
+    final generation = ++_requestGeneration;
 
     try {
-      await stop();
+      await _stopNativeSpeech();
+      if (!_isCurrentRequest(generation)) {
+        return _cancelledResult(requestedMode);
+      }
 
       final resolution = await resolveLocale(requestedMode);
+      if (!_isCurrentRequest(generation)) {
+        return _cancelledResult(requestedMode);
+      }
+
       if (!resolution.hasAvailableLocale) {
         return TtsSpeakResult(
           success: false,
@@ -97,14 +104,26 @@ class TtsService {
           resolvedLocale: null,
           resolvedLanguageLabel: resolution.resolvedLanguageLabel,
           usedFallback: resolution.usedFallback,
-          errorMessage: 'Voice preview is not available on this device.',
+          failureReason: TtsFailureReason.noSupportedLocale,
         );
       }
 
       await _flutterTts.setLanguage(resolution.resolvedLocale!);
+      if (!_isCurrentRequest(generation)) {
+        return _cancelledResult(requestedMode);
+      }
       await _flutterTts.setSpeechRate(speechRateForSpeed(speed));
+      if (!_isCurrentRequest(generation)) {
+        return _cancelledResult(requestedMode);
+      }
       await _flutterTts.setVolume(1.0);
+      if (!_isCurrentRequest(generation)) {
+        return _cancelledResult(requestedMode);
+      }
       await _flutterTts.setPitch(1.0);
+      if (!_isCurrentRequest(generation)) {
+        return _cancelledResult(requestedMode);
+      }
 
       if (cleanText.isEmpty) {
         return TtsSpeakResult(
@@ -117,6 +136,9 @@ class TtsService {
       }
 
       await _flutterTts.speak(cleanText);
+      if (!_isCurrentRequest(generation)) {
+        return _cancelledResult(requestedMode);
+      }
       return TtsSpeakResult(
         success: true,
         requestedVoiceMode: requestedMode,
@@ -133,19 +155,39 @@ class TtsService {
         resolvedLocale: null,
         resolvedLanguageLabel: 'Unavailable',
         usedFallback: false,
-        errorMessage: 'Voice preview is not available on this device.',
+        failureReason: TtsFailureReason.engineFailure,
       );
     }
   }
 
   /// Stops any currently playing speech.
   Future<void> stop() async {
+    _requestGeneration++;
+    await _stopNativeSpeech();
+  }
+
+  Future<void> _stopNativeSpeech() async {
     try {
       await _flutterTts.stop();
       _isSpeaking = false;
     } catch (e) {
       debugPrint('Error stopping TTS: $e');
     }
+  }
+
+  bool _isCurrentRequest(int generation) {
+    return generation == _requestGeneration;
+  }
+
+  TtsSpeakResult _cancelledResult(String requestedMode) {
+    return TtsSpeakResult(
+      success: false,
+      requestedVoiceMode: requestedMode,
+      resolvedLocale: null,
+      resolvedLanguageLabel: 'Unavailable',
+      usedFallback: false,
+      failureReason: TtsFailureReason.cancelled,
+    );
   }
 
   Future<List<String>> _availableLanguages() async {
