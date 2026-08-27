@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/constants/constants.dart';
 import '../../../../core/services/app_state.dart';
+import '../../../../core/services/tts_service.dart';
 import '../../../../shared/widgets/custom_header.dart';
 import '../../../../shared/widgets/ai_tag.dart';
 import '../../../../shared/widgets/badge_widget.dart';
@@ -16,6 +17,56 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  final TtsService _ttsService = TtsService();
+
+  @override
+  void dispose() {
+    _ttsService.stop();
+    super.dispose();
+  }
+
+  Future<void> _previewVoiceSpeed(AppState appState, double rate) async {
+    appState.setVoiceSpeed(rate);
+    await _ttsService.stop();
+
+    final previewKey = rate < 1
+        ? 'voiceSpeedPreviewSlow'
+        : rate == 1
+        ? 'voiceSpeedPreviewNormal'
+        : 'voiceSpeedPreviewFast';
+
+    final result = await _ttsService.speak(
+      appState.translate(previewKey),
+      langCode: appState.currentLanguage,
+      speed: rate,
+    );
+
+    if (!mounted) return;
+    if (!result.success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result.errorMessage ??
+                appState.translate('voicePreviewUnavailable'),
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (result.usedFallback) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            appState
+                .translate('voicePreviewFallback')
+                .replaceFirst('{language}', result.resolvedLanguageLabel),
+          ),
+        ),
+      );
+    }
+  }
+
   void _showLogoutDialog(BuildContext context, AppState appState) {
     showModalBottomSheet(
       context: context,
@@ -726,7 +777,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           final isSel = appState.voiceSpeed == rate;
                           return Expanded(
                             child: InkWell(
-                              onTap: () => appState.setVoiceSpeed(rate),
+                              onTap: () => _previewVoiceSpeed(appState, rate),
                               child: Container(
                                 margin: const EdgeInsets.symmetric(
                                   horizontal: 4,
