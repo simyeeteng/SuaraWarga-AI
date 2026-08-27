@@ -8,6 +8,7 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../../../app/routes.dart';
 import '../../../../core/constants/constants.dart';
 import '../../../../core/services/app_state.dart';
+import '../../../../core/services/voice_command_parser.dart';
 import '../../../../core/services/voice_locale_resolver.dart';
 
 class _VoiceTheme {
@@ -208,13 +209,15 @@ class _ListeningPageState extends State<ListeningPage>
     _listenTimeoutTimer?.cancel();
     unawaited(_speech.stop());
 
-    final intent = AppConstants.intentForTranscript(
-      cleanTranscript,
-      appState.voiceLanguage,
+    final command = const VoiceCommandParser().parse(
+      transcript: cleanTranscript,
+      voiceLanguage: appState.voiceLanguage,
     );
+    final intent = AppConstants.intentForCommand(command);
 
     if (intent.targetScreen == 'home') {
       _isFinishing = false;
+      appState.setPendingVoiceCommand(command);
       appState.setLatestVoiceTranscript(cleanTranscript);
       if (!mounted) return;
       setState(() {
@@ -226,6 +229,7 @@ class _ListeningPageState extends State<ListeningPage>
       return;
     }
 
+    appState.setPendingVoiceCommand(command);
     appState.setPendingIntent(intent);
     appState.setLatestVoiceTranscript(cleanTranscript);
 

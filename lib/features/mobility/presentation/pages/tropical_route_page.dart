@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import '../../../../core/models/voice_command.dart';
 import '../../../../core/services/app_state.dart';
 import '../../../../core/services/routing_service.dart';
 import '../../../../core/services/weather_service.dart';
@@ -77,27 +78,38 @@ class _TropicalRoutePageState extends State<TropicalRoutePage> {
   }
 
   Future<void> _prepareInitialRoute(AppState appState) async {
-    final transcript = appState.latestVoiceTranscript;
+    final voiceCommand = appState.pendingVoiceCommand;
+    final transcript =
+        voiceCommand?.rawTranscript ?? appState.latestVoiceTranscript;
     final isVoiceRoute =
         appState.pendingIntent.targetScreen == 'tropicalRoute' &&
+        voiceCommand?.target == VoiceCommandTarget.tropicalRoute &&
         transcript.isNotEmpty;
     final destinationQuery = isVoiceRoute
-        ? _destinationFromVoice(transcript)
+        ? voiceCommand?.destination?.trim() ?? ''
         : appState.destination.trim();
+    final missingVoiceDestination = isVoiceRoute && destinationQuery.isEmpty;
 
     setState(() {
       _openedFromVoice = isVoiceRoute;
       _voiceTranscript = transcript;
-      _setupMessage = destinationQuery.isEmpty
+      _setupMessage = missingVoiceDestination
+          ? 'I understood that you want a route, but I could not identify the destination. Please enter the destination below.'
+          : destinationQuery.isEmpty
           ? 'Enter a destination or use voice navigation to start routing.'
           : null;
     });
 
-    if (isVoiceRoute) {
-      appState.setSelectedRouteIndex(_routePreferenceIndex(transcript));
+    if (voiceCommand != null && isVoiceRoute) {
+      appState.setSelectedRouteIndex(voiceCommand.routePreference.routeIndex);
     }
 
     await _tryAcquireGps(appState, calculateAfter: false);
+    if (missingVoiceDestination) {
+      appState.clearTropicalRoutes(message: _setupMessage);
+      return;
+    }
+
     if (destinationQuery.isNotEmpty) {
       await _setDestinationFromQuery(
         destinationQuery,
@@ -129,63 +141,6 @@ class _TropicalRoutePageState extends State<TropicalRoutePage> {
       endLat: _endLat,
       endLng: _endLng,
     );
-  }
-
-  String _destinationFromVoice(String transcript) {
-    var cleaned = transcript.trim();
-    final patterns = <RegExp>[
-      RegExp(
-        r'^(please\s+)?(take me|bring me|navigate|guide me|go|walk|drive)\s+(to|towards)\s+',
-        caseSensitive: false,
-      ),
-      RegExp(
-        r'^(i want to|i need to|can you)\s+(go|walk|get)\s+to\s+',
-        caseSensitive: false,
-      ),
-      RegExp(
-        r'\b(by|using|with)\s+(the\s+)?(coolest|fastest|covered|shaded|walking)\s+route\b.*$',
-        caseSensitive: false,
-      ),
-      RegExp(
-        r'\b(find|show|calculate)\s+(a\s+)?(route|path)\s+(to|towards)\s+',
-        caseSensitive: false,
-      ),
-    ];
-
-    for (final pattern in patterns) {
-      cleaned = cleaned.replaceAll(pattern, '');
-    }
-
-    cleaned = cleaned
-        .replaceAll(
-          RegExp(
-            r'\b(route|path|navigation|directions)\b',
-            caseSensitive: false,
-          ),
-          '',
-        )
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .trim();
-    return cleaned.isEmpty ? transcript.trim() : cleaned;
-  }
-
-  int _routePreferenceIndex(String transcript) {
-    final normalized = transcript.toLowerCase();
-    if (normalized.contains('fast') || normalized.contains('quick')) return 0;
-    if (normalized.contains('cool') ||
-        normalized.contains('shade') ||
-        normalized.contains('shaded') ||
-        normalized.contains('\u51c9') ||
-        normalized.contains('\u6dbc') ||
-        normalized.contains('\u0b95\u0bc1\u0bb3\u0bbf\u0bb0') ||
-        normalized.contains('liang') ||
-        normalized.contains('leng')) {
-      return 1;
-    }
-    if (normalized.contains('covered') || normalized.contains('shelter')) {
-      return 2;
-    }
-    return 3;
   }
 
   // ─── GPS acquisition ────────────────────────────────────────────────────────

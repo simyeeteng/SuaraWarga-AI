@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../models/voice_command.dart';
+import '../services/voice_command_parser.dart';
+
 class PipelineStep {
   final String icon;
   final String label;
@@ -364,80 +367,170 @@ class AppConstants {
     String transcript,
     String voiceLanguage,
   ) {
-    final normalized = transcript.toLowerCase().trim();
-    if (normalized.isEmpty) return VOICE_UNMATCHED_INTENT;
+    final command = const VoiceCommandParser().parse(
+      transcript: transcript,
+      voiceLanguage: voiceLanguage,
+    );
+    return intentForCommand(command);
+  }
 
-    final wantsRoute =
-        normalized.contains('route') ||
-        normalized.contains('navigate') ||
-        normalized.contains('walking') ||
-        normalized.contains('hospital') ||
-        normalized.contains('sultanah') ||
-        normalized.contains('coolest') ||
-        normalized.contains('jalan') ||
-        normalized.contains('go to') ||
-        normalized.contains('take me') ||
-        normalized.contains('\u53bb') ||
-        normalized.contains('\u8def\u7ebf') ||
-        normalized.contains('\u8def\u7dda') ||
-        normalized.contains('\u533b\u9662') ||
-        normalized.contains('\u91ab\u9662') ||
-        normalized.contains(
-          '\u0bae\u0bb0\u0bc1\u0ba4\u0bcd\u0ba4\u0bc1\u0bb5\u0bae\u0ba9\u0bc8',
-        ) ||
-        normalized.contains('\u0ba8\u0b9f\u0bc8\u0baa\u0bbe\u0ba4\u0bc8') ||
-        normalized.contains('maruthuvamanai') ||
-        normalized.contains('nadaipathai') ||
-        normalized.contains('去') ||
-        normalized.contains('路线') ||
-        normalized.contains('路線') ||
-        normalized.contains('医院') ||
-        normalized.contains('醫院') ||
-        normalized.contains('மருத்துவமனை') ||
-        normalized.contains('நடைபாதை') ||
-        normalized.contains('khi') ||
-        normalized.contains('heui');
-    if (wantsRoute) {
-      return VOICE_INTENTS.firstWhere(
-        (intent) =>
-            intent.targetScreen == 'tropicalRoute' &&
-            (intent.detectedLang.toLowerCase() == voiceLanguage.toLowerCase() ||
-                (voiceLanguage.toLowerCase().contains('mandarin') &&
-                    intent.detectedLang == 'Mandarin') ||
-                (voiceLanguage.toLowerCase().contains('chinese') &&
-                    intent.detectedLang == 'Mandarin')),
-        orElse: () => VOICE_INTENTS.first,
-      );
+  static VoiceIntent intentForCommand(VoiceCommand command) {
+    return switch (command.target) {
+      VoiceCommandTarget.tropicalRoute => _routeIntent(
+        phrase: command.rawTranscript,
+        detectedLang: _voiceLanguageLabel(command.selectedVoiceLanguage),
+        capturedDesc:
+            '${_voiceLanguageLabel(command.selectedVoiceLanguage)} voice input captured',
+      ),
+      VoiceCommandTarget.formAssistant => _formAssistantIntent(command),
+      VoiceCommandTarget.documentChecker => _documentCheckerIntent(command),
+      VoiceCommandTarget.letterInterpreter => _letterInterpreterIntent(command),
+      VoiceCommandTarget.unmatched => VOICE_UNMATCHED_INTENT,
+    };
+  }
+
+  static VoiceIntent _formAssistantIntent(VoiceCommand command) {
+    final language = _voiceLanguageLabel(command.selectedVoiceLanguage);
+    final isTamil = language == 'Tamil';
+    final isHokkien = language == 'Hokkien';
+    final isMandarin = language == 'Mandarin';
+
+    return VoiceIntent(
+      phrase: command.rawTranscript,
+      detectedLang: language,
+      service: isHokkien
+          ? 'MyKad Renewal - Smart Form'
+          : 'MyKad Renewal Assistant',
+      serviceDesc: isTamil
+          ? 'JPN - Tamil voice step-by-step'
+          : isMandarin
+          ? 'JPN - Chinese voice step-by-step'
+          : 'JPN - Fill renewal form step by step',
+      serviceIcon: 'edit_document',
+      serviceColor: isTamil
+          ? Colors.deepOrange
+          : isHokkien
+          ? Colors.amber
+          : Colors.blue,
+      targetScreen: 'formAssistant',
+      pipelineSteps: _workflowPipelineSteps(
+        command: command,
+        serviceIcon: 'edit_document',
+        serviceLabel: 'Smart Form Assistant',
+        serviceTech: 'Guided Form Workflow',
+        serviceColor: isTamil
+            ? Colors.deepOrange
+            : isHokkien
+            ? Colors.amber
+            : Colors.blue,
+        intentDesc: 'MyKad renewal request -> Smart Form',
+        serviceDesc: 'Opening IC renewal form',
+      ),
+    );
+  }
+
+  static VoiceIntent _documentCheckerIntent(VoiceCommand command) {
+    final language = _voiceLanguageLabel(command.selectedVoiceLanguage);
+
+    return VoiceIntent(
+      phrase: command.rawTranscript,
+      detectedLang: language,
+      service: language == 'Tamil'
+          ? 'Document Checker (Tamil)'
+          : 'Document Readiness Check',
+      serviceDesc: language == 'Tamil'
+          ? 'JPN - Tamil voice checklist'
+          : 'JPN - Know what to bring',
+      serviceIcon: 'checklist_rtl',
+      serviceColor: language == 'Tamil' ? Colors.deepOrange : Colors.green,
+      targetScreen: 'docChecker',
+      pipelineSteps: _workflowPipelineSteps(
+        command: command,
+        serviceIcon: 'checklist_rtl',
+        serviceLabel: 'Document Readiness Checker',
+        serviceTech: 'Document Checklist',
+        serviceColor: language == 'Tamil' ? Colors.deepOrange : Colors.green,
+        intentDesc: 'Document readiness request -> Document Checklist',
+        serviceDesc: 'Checking required documents',
+      ),
+    );
+  }
+
+  static VoiceIntent _letterInterpreterIntent(VoiceCommand command) {
+    return VoiceIntent(
+      phrase: command.rawTranscript,
+      detectedLang: _voiceLanguageLabel(command.selectedVoiceLanguage),
+      service: 'Government Letter Interpreter',
+      serviceDesc: 'Explains government letters in simple language',
+      serviceIcon: 'description',
+      serviceColor: Colors.purple,
+      targetScreen: 'letterInterpreter',
+      pipelineSteps: _workflowPipelineSteps(
+        command: command,
+        serviceIcon: 'description',
+        serviceLabel: 'Letter Interpreter',
+        serviceTech: 'Letter Interpreter',
+        serviceColor: Colors.purple,
+        intentDesc: 'Letter help request -> Letter Interpreter',
+        serviceDesc: 'Opening letter explanation workflow',
+      ),
+    );
+  }
+
+  static List<PipelineStep> _workflowPipelineSteps({
+    required VoiceCommand command,
+    required String serviceIcon,
+    required String serviceLabel,
+    required String serviceTech,
+    required Color serviceColor,
+    required String intentDesc,
+    required String serviceDesc,
+  }) {
+    final language = _voiceLanguageLabel(command.selectedVoiceLanguage);
+    return [
+      PipelineStep(
+        icon: 'mic',
+        label: 'Speech Recognition',
+        tech: 'Locale-aware ASR',
+        color: Colors.blue,
+        desc: '$language voice input captured',
+      ),
+      PipelineStep(
+        icon: 'translate',
+        label: 'Voice Language',
+        tech: 'Selected Voice Mode',
+        color: Colors.purple,
+        desc: '$language voice mode',
+      ),
+      PipelineStep(
+        icon: 'psychology',
+        label: 'Intent & Entity Routing',
+        tech: 'Deterministic NLP',
+        color: Colors.amber,
+        desc: intentDesc,
+      ),
+      PipelineStep(
+        icon: serviceIcon,
+        label: serviceLabel,
+        tech: serviceTech,
+        color: serviceColor,
+        desc: serviceDesc,
+      ),
+    ];
+  }
+
+  static String _voiceLanguageLabel(String voiceLanguage) {
+    final normalized = voiceLanguage.toLowerCase();
+    if (normalized.contains('mandarin') || normalized.contains('chinese')) {
+      return 'Mandarin';
     }
-
-    final wantsDocument =
-        normalized.contains('document') ||
-        normalized.contains('letter') ||
-        normalized.contains('bill') ||
-        normalized.contains('ic') ||
-        normalized.contains('mykad') ||
-        normalized.contains('\u8eab\u4efd\u8bc1') ||
-        normalized.contains('\u8eab\u4efd\u8b49') ||
-        normalized.contains('\u0b85\u0b9f\u0bc8\u0baf\u0bbe\u0bb3') ||
-        normalized.contains('身份证') ||
-        normalized.contains('身份證') ||
-        normalized.contains('அடையாள');
-    if (wantsDocument) {
-      return VOICE_INTENTS.firstWhere(
-        (intent) =>
-            intent.targetScreen != 'tropicalRoute' &&
-            (intent.detectedLang.toLowerCase() == voiceLanguage.toLowerCase() ||
-                (voiceLanguage.toLowerCase().contains('mandarin') &&
-                    intent.detectedLang == 'Mandarin') ||
-                (voiceLanguage.toLowerCase().contains('chinese') &&
-                    intent.detectedLang == 'Mandarin')),
-        orElse: () => VOICE_INTENTS.firstWhere(
-          (intent) => intent.targetScreen == 'letterInterpreter',
-        ),
-      );
+    if (normalized.contains('tamil')) return 'Tamil';
+    if (normalized.contains('hokkien')) return 'Hokkien';
+    if (normalized.contains('cantonese')) return 'Cantonese';
+    if (normalized.contains('malay') || normalized.contains('melayu')) {
+      return 'Malay';
     }
-
-    return VOICE_UNMATCHED_INTENT;
+    return 'English';
   }
 
   static VoiceIntent _routeIntent({
