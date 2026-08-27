@@ -218,6 +218,16 @@ class AppState extends ChangeNotifier {
   VoiceCommand? get pendingVoiceCommand => _pendingVoiceCommand;
   String get latestVoiceTranscript => _latestVoiceTranscript;
 
+  void setVoiceHandoff({
+    required VoiceCommand command,
+    required VoiceIntent intent,
+  }) {
+    _pendingVoiceCommand = command;
+    _pendingIntent = intent;
+    _latestVoiceTranscript = command.rawTranscript;
+    notifyListeners();
+  }
+
   void setPendingIntent(VoiceIntent intent) {
     _pendingIntent = intent;
     _latestVoiceTranscript = '';
@@ -237,6 +247,17 @@ class AppState extends ChangeNotifier {
   void clearPendingVoiceCommand() {
     _pendingVoiceCommand = null;
     notifyListeners();
+  }
+
+  VoiceCommand? consumePendingVoiceCommand() {
+    final command = _pendingVoiceCommand;
+    if (command == null) return null;
+
+    _pendingVoiceCommand = null;
+    _pendingIntent = AppConstants.VOICE_UNMATCHED_INTENT;
+    _latestVoiceTranscript = '';
+    notifyListeners();
+    return command;
   }
 
   // Feature specific states

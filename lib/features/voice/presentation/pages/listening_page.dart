@@ -217,8 +217,6 @@ class _ListeningPageState extends State<ListeningPage>
 
     if (intent.targetScreen == 'home') {
       _isFinishing = false;
-      appState.setPendingVoiceCommand(command);
-      appState.setLatestVoiceTranscript(cleanTranscript);
       if (!mounted) return;
       setState(() {
         _phase = 'error';
@@ -229,9 +227,7 @@ class _ListeningPageState extends State<ListeningPage>
       return;
     }
 
-    appState.setPendingVoiceCommand(command);
-    appState.setPendingIntent(intent);
-    appState.setLatestVoiceTranscript(cleanTranscript);
+    appState.setVoiceHandoff(command: command, intent: intent);
 
     if (!mounted) return;
     setState(() {
