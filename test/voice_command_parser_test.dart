@@ -88,6 +88,16 @@ void main() {
 
       expect(command.target, isNot(VoiceCommandTarget.tropicalRoute));
     });
+
+    test('Tamil generic show cue without route context is not navigation', () {
+      final command = parser.parse(
+        transcript: 'என் ஆவணத்தை காண்பி.',
+        voiceLanguage: 'Tamil',
+      );
+
+      expect(command.target, VoiceCommandTarget.unmatched);
+      expect(command.destination, isNull);
+    });
   });
 
   group('VoiceCommandParser government services', () {
@@ -112,6 +122,36 @@ void main() {
         expect(command.target, VoiceCommandTarget.formAssistant);
       });
     }
+
+    test('English IC renewal still maps to form assistant', () {
+      final command = parser.parse(
+        transcript: 'I want to renew my IC.',
+        voiceLanguage: 'English',
+      );
+
+      expect(command.target, VoiceCommandTarget.formAssistant);
+      expect(command.documentTopic, VoiceDocumentTopic.myKad);
+    });
+
+    test('passport renewal is safely unmatched', () {
+      final command = parser.parse(
+        transcript: 'I want to renew my passport.',
+        voiceLanguage: 'English',
+      );
+
+      expect(command.target, VoiceCommandTarget.unmatched);
+      expect(command.documentTopic, isNull);
+    });
+
+    test('road tax renewal is safely unmatched', () {
+      final command = parser.parse(
+        transcript: 'I need to renew road tax.',
+        voiceLanguage: 'English',
+      );
+
+      expect(command.target, VoiceCommandTarget.unmatched);
+      expect(command.documentTopic, isNull);
+    });
 
     test('document checklist takes precedence over generic renewal', () {
       final command = parser.parse(

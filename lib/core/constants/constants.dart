@@ -21,7 +21,7 @@ class PipelineStep {
 
 class VoiceIntent {
   final String phrase;
-  final String detectedLang;
+  final String voiceLanguage;
   final String service;
   final String serviceDesc;
   final String serviceIcon;
@@ -31,7 +31,7 @@ class VoiceIntent {
 
   const VoiceIntent({
     required this.phrase,
-    required this.detectedLang,
+    required this.voiceLanguage,
     required this.service,
     required this.serviceDesc,
     required this.serviceIcon,
@@ -116,232 +116,9 @@ class AppConstants {
     ),
   ];
 
-  static final List<VoiceIntent> VOICE_INTENTS = [
-    _routeIntent(
-      phrase: 'Take me to KL Sentral by the coolest walking route.',
-      detectedLang: 'English',
-      capturedDesc: 'English voice input captured',
-    ),
-    _routeIntent(
-      phrase: '带我去吉隆坡中央车站，找最凉快的路线。',
-      detectedLang: 'Mandarin',
-      capturedDesc: 'Mandarin voice input captured',
-    ),
-    _routeIntent(
-      phrase: 'KL Sentral-க்கு குளிரான நடைபாதையை காண்பி.',
-      detectedLang: 'Tamil',
-      capturedDesc: 'Tamil voice input captured',
-    ),
-    _routeIntent(
-      phrase: 'Wa beh khi KL Sentral, chhoe siang liang e lo.',
-      detectedLang: 'Hokkien',
-      capturedDesc: 'Hokkien voice input captured',
-    ),
-    _routeIntent(
-      phrase: 'Ngo seung heui KL Sentral, wan tiu leng fong ge lou.',
-      detectedLang: 'Cantonese',
-      capturedDesc: 'Cantonese voice input captured',
-    ),
-    const VoiceIntent(
-      phrase: 'Wa beh renew IC.',
-      detectedLang: 'Hokkien',
-      service: 'MyKad Renewal - Smart Form',
-      serviceDesc: 'JPN - Fill renewal form step by step',
-      serviceIcon: 'edit_document',
-      serviceColor: Colors.amber,
-      targetScreen: 'formAssistant',
-      pipelineSteps: [
-        PipelineStep(
-          icon: 'mic',
-          label: 'Speech Recognition',
-          tech: 'Locale-aware ASR',
-          color: Colors.blue,
-          desc: 'Hokkien voice input captured',
-        ),
-        PipelineStep(
-          icon: 'translate',
-          label: 'Voice Language',
-          tech: 'Selected Voice Mode',
-          color: Colors.purple,
-          desc: 'Hokkien voice mode',
-        ),
-        PipelineStep(
-          icon: 'psychology',
-          label: 'Intent & Entity Routing',
-          tech: 'Deterministic NLP',
-          color: Colors.amber,
-          desc: 'MyKad renewal request -> Smart Form',
-        ),
-        PipelineStep(
-          icon: 'edit_document',
-          label: 'Smart Form Assistant',
-          tech: 'Guided Form Workflow',
-          color: Colors.amber,
-          desc: 'Opening IC renewal form',
-        ),
-      ],
-    ),
-    const VoiceIntent(
-      phrase: '我想更新我的身份证 IC。',
-      detectedLang: 'Mandarin',
-      service: 'MyKad Renewal Assistant',
-      serviceDesc: 'JPN - Chinese voice step-by-step',
-      serviceIcon: 'edit_document',
-      serviceColor: Colors.blue,
-      targetScreen: 'formAssistant',
-      pipelineSteps: [
-        PipelineStep(
-          icon: 'mic',
-          label: 'Speech Recognition',
-          tech: 'Locale-aware ASR',
-          color: Colors.blue,
-          desc: 'Mandarin voice input captured',
-        ),
-        PipelineStep(
-          icon: 'translate',
-          label: 'Voice Language',
-          tech: 'Selected Voice Mode',
-          color: Colors.purple,
-          desc: 'Mandarin voice mode',
-        ),
-        PipelineStep(
-          icon: 'psychology',
-          label: 'Intent & Entity Routing',
-          tech: 'Deterministic NLP',
-          color: Colors.amber,
-          desc: 'MyKad renewal request -> Smart Form',
-        ),
-        PipelineStep(
-          icon: 'edit_document',
-          label: 'Smart Form Assistant',
-          tech: 'Guided Form Workflow',
-          color: Colors.blue,
-          desc: 'Opening IC renewal form in Chinese',
-        ),
-      ],
-    ),
-    const VoiceIntent(
-      phrase: 'I need help with my government letter and bill.',
-      detectedLang: 'English',
-      service: 'Government Letter Interpreter',
-      serviceDesc: 'Explains government letters in simple language',
-      serviceIcon: 'description',
-      serviceColor: Colors.purple,
-      targetScreen: 'letterInterpreter',
-      pipelineSteps: [
-        PipelineStep(
-          icon: 'mic',
-          label: 'Speech Recognition',
-          tech: 'Locale-aware ASR',
-          color: Colors.blue,
-          desc: 'English voice input captured',
-        ),
-        PipelineStep(
-          icon: 'translate',
-          label: 'Voice Language',
-          tech: 'Selected Voice Mode',
-          color: Colors.purple,
-          desc: 'English voice mode',
-        ),
-        PipelineStep(
-          icon: 'psychology',
-          label: 'Intent & Entity Routing',
-          tech: 'Deterministic NLP',
-          color: Colors.amber,
-          desc: 'Letter help request -> Letter Interpreter',
-        ),
-        PipelineStep(
-          icon: 'description',
-          label: 'Letter Interpreter',
-          tech: 'Letter Interpreter',
-          color: Colors.purple,
-          desc: 'Opening letter explanation workflow',
-        ),
-      ],
-    ),
-    const VoiceIntent(
-      phrase: 'நான் என் அடையாள அட்டையைப் புதுப்பிக்க வேண்டும்.',
-      detectedLang: 'Tamil',
-      service: 'Document Checker (Tamil)',
-      serviceDesc: 'JPN - Tamil voice checklist',
-      serviceIcon: 'checklist_rtl',
-      serviceColor: Colors.deepOrange,
-      targetScreen: 'docChecker',
-      pipelineSteps: [
-        PipelineStep(
-          icon: 'mic',
-          label: 'Speech Recognition',
-          tech: 'Locale-aware ASR',
-          color: Colors.blue,
-          desc: 'Tamil voice input captured',
-        ),
-        PipelineStep(
-          icon: 'translate',
-          label: 'Voice Language',
-          tech: 'Selected Voice Mode',
-          color: Colors.purple,
-          desc: 'Tamil voice mode',
-        ),
-        PipelineStep(
-          icon: 'psychology',
-          label: 'Intent & Entity Routing',
-          tech: 'Deterministic NLP',
-          color: Colors.amber,
-          desc: 'MyKad renewal request -> Document Checklist',
-        ),
-        PipelineStep(
-          icon: 'checklist_rtl',
-          label: 'Document Readiness Checker',
-          tech: 'Document Checklist',
-          color: Colors.deepOrange,
-          desc: 'Checking IC requirements in Tamil',
-        ),
-      ],
-    ),
-    const VoiceIntent(
-      phrase: 'Saya nak semak dokumen pembaharuan MyKad.',
-      detectedLang: 'Malay',
-      service: 'Document Readiness Check',
-      serviceDesc: 'JPN - Know what to bring',
-      serviceIcon: 'checklist_rtl',
-      serviceColor: Colors.green,
-      targetScreen: 'docChecker',
-      pipelineSteps: [
-        PipelineStep(
-          icon: 'mic',
-          label: 'Speech Recognition',
-          tech: 'Locale-aware ASR',
-          color: Colors.blue,
-          desc: 'Malay voice input captured',
-        ),
-        PipelineStep(
-          icon: 'translate',
-          label: 'Voice Language',
-          tech: 'Selected Voice Mode',
-          color: Colors.purple,
-          desc: 'Malay voice mode',
-        ),
-        PipelineStep(
-          icon: 'psychology',
-          label: 'Intent & Entity Routing',
-          tech: 'Deterministic NLP',
-          color: Colors.amber,
-          desc: 'MyKad renewal request -> Document Checklist',
-        ),
-        PipelineStep(
-          icon: 'checklist_rtl',
-          label: 'Document Readiness Checker',
-          tech: 'Document Checklist',
-          color: Colors.green,
-          desc: 'Checking IC, photo, utility bill',
-        ),
-      ],
-    ),
-  ];
-
   static const VoiceIntent VOICE_UNMATCHED_INTENT = VoiceIntent(
     phrase: '',
-    detectedLang: 'Unknown',
+    voiceLanguage: 'Unknown',
     service: 'Voice Request',
     serviceDesc: 'No matching service found',
     serviceIcon: 'description',
@@ -349,19 +126,6 @@ class AppConstants {
     targetScreen: 'home',
     pipelineSteps: [],
   );
-
-  static VoiceIntent intentForLanguage(String voiceLanguage) {
-    final normalized = voiceLanguage.toLowerCase();
-    return VOICE_INTENTS.firstWhere(
-      (intent) =>
-          intent.detectedLang.toLowerCase() == normalized ||
-          (normalized.contains('chinese') &&
-              intent.detectedLang == 'Mandarin') ||
-          (normalized.contains('mandarin') &&
-              intent.detectedLang == 'Mandarin'),
-      orElse: () => VOICE_UNMATCHED_INTENT,
-    );
-  }
 
   static VoiceIntent intentForTranscript(
     String transcript,
@@ -378,7 +142,7 @@ class AppConstants {
     return switch (command.target) {
       VoiceCommandTarget.tropicalRoute => _routeIntent(
         phrase: command.rawTranscript,
-        detectedLang: _voiceLanguageLabel(command.selectedVoiceLanguage),
+        voiceLanguage: _voiceLanguageLabel(command.selectedVoiceLanguage),
         capturedDesc:
             '${_voiceLanguageLabel(command.selectedVoiceLanguage)} voice input captured',
       ),
@@ -397,7 +161,7 @@ class AppConstants {
 
     return VoiceIntent(
       phrase: command.rawTranscript,
-      detectedLang: language,
+      voiceLanguage: language,
       service: isHokkien
           ? 'MyKad Renewal - Smart Form'
           : 'MyKad Renewal Assistant',
@@ -434,7 +198,7 @@ class AppConstants {
 
     return VoiceIntent(
       phrase: command.rawTranscript,
-      detectedLang: language,
+      voiceLanguage: language,
       service: language == 'Tamil'
           ? 'Document Checker (Tamil)'
           : 'Document Readiness Check',
@@ -459,7 +223,7 @@ class AppConstants {
   static VoiceIntent _letterInterpreterIntent(VoiceCommand command) {
     return VoiceIntent(
       phrase: command.rawTranscript,
-      detectedLang: _voiceLanguageLabel(command.selectedVoiceLanguage),
+      voiceLanguage: _voiceLanguageLabel(command.selectedVoiceLanguage),
       service: 'Government Letter Interpreter',
       serviceDesc: 'Explains government letters in simple language',
       serviceIcon: 'description',
@@ -535,12 +299,12 @@ class AppConstants {
 
   static VoiceIntent _routeIntent({
     required String phrase,
-    required String detectedLang,
+    required String voiceLanguage,
     required String capturedDesc,
   }) {
     return VoiceIntent(
       phrase: phrase,
-      detectedLang: detectedLang,
+      voiceLanguage: voiceLanguage,
       service: 'TropicalRoute AI',
       serviceDesc: 'Smart Mobility - heat-aware route selection',
       serviceIcon: 'alt_route',
@@ -559,7 +323,7 @@ class AppConstants {
           label: 'Voice Language',
           tech: 'Selected Voice Mode',
           color: Colors.purple,
-          desc: '$detectedLang voice mode',
+          desc: '$voiceLanguage voice mode',
         ),
         const PipelineStep(
           icon: 'psychology',

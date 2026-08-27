@@ -27,7 +27,7 @@ class VoiceCommand {
   final VoiceCommandTarget target;
   final String? destination;
   final VoiceRoutePreference routePreference;
-  final VoiceDocumentTopic documentTopic;
+  final VoiceDocumentTopic? documentTopic;
   final String? matchedRule;
 
   const VoiceCommand({
@@ -36,7 +36,7 @@ class VoiceCommand {
     required this.target,
     this.destination,
     this.routePreference = VoiceRoutePreference.balanced,
-    this.documentTopic = VoiceDocumentTopic.unknown,
+    this.documentTopic,
     this.matchedRule,
   });
 

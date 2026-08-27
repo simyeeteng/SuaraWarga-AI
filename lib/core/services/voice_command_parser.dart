@@ -125,7 +125,8 @@ class VoiceCommandParser {
   }
 
   static String? _formRuleFor(String normalized) {
-    if (_containsAnyPattern(normalized, _formActionPatterns)) {
+    if (_containsAnyPattern(normalized, _formActionPatterns) &&
+        _containsAnyPattern(normalized, _myKadPatterns)) {
       return 'form-application-cue';
     }
     return null;
@@ -244,8 +245,7 @@ class VoiceCommandParser {
     RegExp(r'(带我去|帶我去|我要去|我想去)'),
     RegExp(r'去.+(怎么走|怎麼走)'),
     RegExp(r'(路线|路線).*(怎么走|怎麼走|带我|帶我|我要|我想|找)'),
-    RegExp(r'காண்பி'),
-    RegExp(r'-க்கு\s+.*(நடைபாதை|பாதை|காண்பி)'),
+    RegExp(r'-க்கு\s+.*(நடைபாதை|பாதை)'),
     RegExp(r'\bwa\s+beh\s+khi\b'),
     RegExp(r'\bngo\s+seung\s+heui\b'),
   ];
@@ -315,18 +315,9 @@ class VoiceCommandParser {
   ];
 
   static final List<RegExp> _formActionPatterns = [
-    RegExp(
-      r'\b(renew|update|apply|replace|register)\b.*\b(ic|mykad|identity card)\b',
-    ),
-    RegExp(
-      r'\b(i want to|i need to|help me)\b.*\b(renew|update|apply|replace|register)\b',
-    ),
-    RegExp(r'(更新|更新我的|更新.*身份证|更新.*身份證|申请|申請|办理|辦理).*(身份证|身份證|ic|mykad)'),
-    RegExp(r'(身份证|身份證|ic|mykad).*(更新|申请|申請|办理|辦理)'),
-    RegExp(r'(புதுப்பிக்க|விண்ணப்பிக்க).*(அடையாள அட்டை|ic|mykad)'),
-    RegExp(r'(அடையாள அட்டை|ic|mykad).*(புதுப்பிக்க|விண்ணப்பிக்க)'),
-    RegExp(r'\bwa\s+beh\s+(renew|update|apply)\b.*\b(ic|mykad)\b'),
-    RegExp(r'\bngo\s+seung\s+(renew|update|apply)\b.*\b(ic|mykad)\b'),
+    RegExp(r'\b(renew|update|apply|replace|register)\b'),
+    RegExp(r'(更新|申请|申請|办理|辦理)'),
+    RegExp(r'(புதுப்பிக்க|விண்ணப்பிக்க)'),
   ];
 
   static final List<RegExp> _myKadPatterns = [
