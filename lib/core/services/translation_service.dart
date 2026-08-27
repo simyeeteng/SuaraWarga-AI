@@ -233,6 +233,10 @@ class TranslationService {
           'Voice preview is not available on this device.',
       'voicePreviewFallback':
           'Using {language} because the selected TTS voice is unavailable.',
+      'spokenRouteUnavailable': 'Spoken route is not available on this device.',
+      'spokenRouteFallback': 'Using {language} for spoken route.',
+      'routeReadAloud': 'Read route aloud',
+      'routeStopSpeech': 'Stop',
       'dialectAiHint':
           'Uses your selected voice language and a compatible device speech locale when needed.',
       'noEmergencyContact': 'No emergency contact added.',
@@ -626,6 +630,11 @@ class TranslationService {
           'Pratonton suara tidak tersedia pada peranti ini.',
       'voicePreviewFallback':
           'Menggunakan {language} kerana suara TTS yang dipilih tidak tersedia.',
+      'spokenRouteUnavailable':
+          'Laluan bersuara tidak tersedia pada peranti ini.',
+      'spokenRouteFallback': 'Menggunakan {language} untuk laluan bersuara.',
+      'routeReadAloud': 'Baca laluan',
+      'routeStopSpeech': 'Berhenti',
       'currentSpeed': 'Kelajuan semasa:',
       'dialectAiHint':
           'Menggunakan bahasa suara pilihan anda dan locale pertuturan peranti yang serasi apabila perlu.',
@@ -996,6 +1005,10 @@ class TranslationService {
       'voiceSpeedPreviewFast': '这是较快的语音速度。',
       'voicePreviewUnavailable': '此设备无法使用语音预览。',
       'voicePreviewFallback': '所选 TTS 语音不可用，正在使用 {language}。',
+      'spokenRouteUnavailable': '此设备无法朗读路线。',
+      'spokenRouteFallback': '正在使用 {language} 朗读路线。',
+      'routeReadAloud': '朗读路线',
+      'routeStopSpeech': '停止',
       'currentSpeed': '当前速度：',
       'dialectAiHint': '会使用您选择的语音语言，并在需要时采用兼容的设备语音识别 locale。',
       'noEmergencyContact': '未添加紧急联系人。',
@@ -1362,6 +1375,12 @@ class TranslationService {
           'இந்த சாதனத்தில் குரல் முன்னோட்டம் கிடைக்கவில்லை.',
       'voicePreviewFallback':
           'தேர்ந்தெடுத்த TTS குரல் கிடைக்காததால் {language} பயன்படுத்தப்படுகிறது.',
+      'spokenRouteUnavailable':
+          'இந்த சாதனத்தில் வழியை குரலில் வாசிக்க முடியவில்லை.',
+      'spokenRouteFallback':
+          'வழி வாசிப்புக்கு {language} பயன்படுத்தப்படுகிறது.',
+      'routeReadAloud': 'வழியை வாசிக்கவும்',
+      'routeStopSpeech': 'நிறுத்து',
       'currentSpeed': 'தற்போதைய வேகம்:',
       'dialectAiHint':
           'நீங்கள் தேர்ந்தெடுத்த குரல் மொழியையும், தேவைப்பட்டால் பொருந்தக்கூடிய சாதன பேச்சு locale-ஐயும் பயன்படுத்துகிறது.',
