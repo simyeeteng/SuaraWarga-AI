@@ -44,6 +44,7 @@ class _ListeningPageState extends State<ListeningPage>
   VoiceLocaleResult? _localeResult;
   bool _isFinishing = false;
   bool _hasNavigated = false;
+  bool _hasFinalizedSpeechSession = false;
 
   @override
   void initState() {
@@ -74,23 +75,25 @@ class _ListeningPageState extends State<ListeningPage>
       _localeResult = null;
       _isFinishing = false;
       _hasNavigated = false;
+      _hasFinalizedSpeechSession = false;
     });
 
     try {
       final available = await _speech.initialize(
         onStatus: (status) {
-          if (_isFinishing) return;
+          if (_isFinishing || _hasFinalizedSpeechSession) return;
           debugPrint('Speech status: $status');
           if (status == 'done') {
             _finishOrShowEmptyState(appState);
           }
         },
         onError: (error) {
-          if (_isFinishing || !mounted) return;
+          if (_isFinishing || _hasFinalizedSpeechSession || !mounted) return;
           debugPrint(
             'Speech recognition error: ${error.errorMsg}; permanent=${error.permanent}',
           );
           _listenTimeoutTimer?.cancel();
+          _hasFinalizedSpeechSession = true;
           setState(() {
             _phase = 'error';
             _errorText = _messageForSpeechError(error.errorMsg);
@@ -100,6 +103,7 @@ class _ListeningPageState extends State<ListeningPage>
 
       if (!available) {
         if (!mounted) return;
+        _hasFinalizedSpeechSession = true;
         setState(() {
           _phase = 'error';
           _errorText =
@@ -116,6 +120,7 @@ class _ListeningPageState extends State<ListeningPage>
       });
 
       if (!localeResult.hasCompatibleLocale) {
+        _hasFinalizedSpeechSession = true;
         setState(() {
           _phase = 'error';
           _errorText =
@@ -139,7 +144,7 @@ class _ListeningPageState extends State<ListeningPage>
           listenMode: stt.ListenMode.confirmation,
         ),
         onResult: (result) {
-          if (!mounted || _isFinishing) return;
+          if (!mounted || _isFinishing || _hasFinalizedSpeechSession) return;
           final words = result.recognizedWords.trim();
           if (words.isNotEmpty) {
             setState(() {
@@ -159,6 +164,7 @@ class _ListeningPageState extends State<ListeningPage>
     } catch (e) {
       debugPrint('Could not start voice input: $e');
       if (!mounted) return;
+      _hasFinalizedSpeechSession = true;
       setState(() {
         _phase = 'error';
         _errorText = 'Could not start voice input. Please try again.';
@@ -175,13 +181,15 @@ class _ListeningPageState extends State<ListeningPage>
   }
 
   void _finishOrShowEmptyState(AppState appState) {
-    if (_isFinishing) return;
+    if (_isFinishing || _hasFinalizedSpeechSession) return;
     if (_transcript.trim().isNotEmpty) {
       _finishListening(appState, _transcript);
       return;
     }
 
     _listenTimeoutTimer?.cancel();
+    _hasFinalizedSpeechSession = true;
+    unawaited(_speech.stop());
     if (!mounted) return;
     setState(() {
       _phase = 'error';
@@ -191,9 +199,12 @@ class _ListeningPageState extends State<ListeningPage>
 
   void _finishListening(AppState appState, String transcript) {
     final cleanTranscript = transcript.trim();
-    if (_isFinishing || cleanTranscript.isEmpty) return;
+    if (_isFinishing || _hasFinalizedSpeechSession || cleanTranscript.isEmpty) {
+      return;
+    }
 
     _isFinishing = true;
+    _hasFinalizedSpeechSession = true;
     _listenTimeoutTimer?.cancel();
     unawaited(_speech.stop());
 
