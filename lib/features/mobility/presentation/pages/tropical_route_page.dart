@@ -118,9 +118,6 @@ class _TropicalRoutePageState extends State<TropicalRoutePage> {
     });
 
     if (voiceRouteCommand != null) {
-      appState.setSelectedRouteIndex(
-        voiceRouteCommand.routePreference.routeIndex,
-      );
       appState.setDestination('');
       appState.clearTropicalRoutes(message: _setupMessage);
     }

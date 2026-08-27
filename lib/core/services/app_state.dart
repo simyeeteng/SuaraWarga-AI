@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/voice_command.dart';
-import '../constants/constants.dart';
 import '../config/default_configs.dart';
 import '../utils/solar_calculator.dart';
 import 'translation_service.dart';
@@ -211,48 +210,16 @@ class AppState extends ChangeNotifier {
   }
 
   // Voice command and processing state
-  VoiceIntent _pendingIntent = AppConstants.VOICE_UNMATCHED_INTENT;
   VoiceCommand? _pendingVoiceCommand;
-  String _latestVoiceTranscript = '';
-  VoiceIntent get pendingIntent => _pendingIntent;
   VoiceCommand? get pendingVoiceCommand => _pendingVoiceCommand;
-  String get latestVoiceTranscript => _latestVoiceTranscript;
 
-  void setVoiceHandoff({
-    required VoiceCommand command,
-    required VoiceIntent intent,
-  }) {
+  void setVoiceHandoff(VoiceCommand command) {
     _pendingVoiceCommand = command;
-    _pendingIntent = intent;
-    _latestVoiceTranscript = command.rawTranscript;
-    notifyListeners();
-  }
-
-  void setPendingIntent(VoiceIntent intent) {
-    _pendingIntent = intent;
-    _latestVoiceTranscript = '';
-    notifyListeners();
-  }
-
-  void setLatestVoiceTranscript(String transcript) {
-    _latestVoiceTranscript = transcript.trim();
-    notifyListeners();
-  }
-
-  void setPendingVoiceCommand(VoiceCommand command) {
-    _pendingVoiceCommand = command;
-    notifyListeners();
-  }
-
-  void clearPendingVoiceCommand() {
-    _pendingVoiceCommand = null;
     notifyListeners();
   }
 
   void clearVoiceHandoff() {
     _pendingVoiceCommand = null;
-    _pendingIntent = AppConstants.VOICE_UNMATCHED_INTENT;
-    _latestVoiceTranscript = '';
     notifyListeners();
   }
 

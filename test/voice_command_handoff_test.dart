@@ -1,13 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:suarawarga_ai/core/constants/constants.dart';
 import 'package:suarawarga_ai/core/models/voice_command.dart';
 import 'package:suarawarga_ai/core/services/app_state.dart';
 
 void main() {
   void applyListeningHandoffPolicy(AppState appState, VoiceCommand command) {
-    final intent = AppConstants.intentForCommand(command);
     if (command.target == VoiceCommandTarget.tropicalRoute) {
-      appState.setVoiceHandoff(command: command, intent: intent);
+      appState.setVoiceHandoff(command);
     } else {
       appState.clearVoiceHandoff();
     }
@@ -22,16 +20,11 @@ void main() {
       routePreference: VoiceRoutePreference.coolest,
       matchedRule: 'navigation-action-cue',
     );
-    appState.setVoiceHandoff(
-      command: staleCommand,
-      intent: AppConstants.intentForCommand(staleCommand),
-    );
+    appState.setVoiceHandoff(staleCommand);
   }
 
   void expectNoGlobalHandoff(AppState appState) {
     expect(appState.pendingVoiceCommand, isNull);
-    expect(appState.pendingIntent, AppConstants.VOICE_UNMATCHED_INTENT);
-    expect(appState.latestVoiceTranscript, isEmpty);
   }
 
   group('Voice command handoff', () {
@@ -46,10 +39,7 @@ void main() {
         matchedRule: 'navigation-action-cue',
       );
 
-      appState.setVoiceHandoff(
-        command: command,
-        intent: AppConstants.intentForCommand(command),
-      );
+      appState.setVoiceHandoff(command);
 
       final firstConsume = appState.consumePendingVoiceCommand();
       final secondConsume = appState.consumePendingVoiceCommand();
@@ -58,8 +48,6 @@ void main() {
       expect(firstConsume?.destination, 'KL Sentral');
       expect(firstConsume?.routePreference, VoiceRoutePreference.coolest);
       expect(appState.pendingVoiceCommand, isNull);
-      expect(appState.pendingIntent, AppConstants.VOICE_UNMATCHED_INTENT);
-      expect(appState.latestVoiceTranscript, isEmpty);
       expect(secondConsume, isNull);
     });
 
@@ -73,10 +61,7 @@ void main() {
         matchedRule: 'navigation-action-cue',
       );
 
-      appState.setVoiceHandoff(
-        command: command,
-        intent: AppConstants.intentForCommand(command),
-      );
+      appState.setVoiceHandoff(command);
 
       final consumed = appState.consumePendingVoiceCommand();
 
@@ -96,10 +81,7 @@ void main() {
         matchedRule: 'navigation-action-cue',
       );
 
-      appState.setVoiceHandoff(
-        command: command,
-        intent: AppConstants.intentForCommand(command),
-      );
+      appState.setVoiceHandoff(command);
 
       final consumed = appState.consumePendingVoiceCommand();
 

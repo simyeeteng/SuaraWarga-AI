@@ -229,7 +229,7 @@ class _ListeningPageState extends State<ListeningPage>
     }
 
     if (command.target == VoiceCommandTarget.tropicalRoute) {
-      appState.setVoiceHandoff(command: command, intent: intent);
+      appState.setVoiceHandoff(command);
     } else {
       appState.clearVoiceHandoff();
     }

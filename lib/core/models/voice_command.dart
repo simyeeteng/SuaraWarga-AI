@@ -8,17 +8,6 @@ enum VoiceCommandTarget {
 
 enum VoiceRoutePreference { fastest, coolest, covered, balanced }
 
-extension VoiceRoutePreferenceIndex on VoiceRoutePreference {
-  int get routeIndex {
-    return switch (this) {
-      VoiceRoutePreference.fastest => 0,
-      VoiceRoutePreference.coolest => 1,
-      VoiceRoutePreference.covered => 2,
-      VoiceRoutePreference.balanced => 3,
-    };
-  }
-}
-
 enum VoiceDocumentTopic { myKad, letter, generalDocument, unknown }
 
 class VoiceCommand {
