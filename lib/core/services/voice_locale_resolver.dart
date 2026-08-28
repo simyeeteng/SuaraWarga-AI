@@ -105,12 +105,12 @@ class VoiceLocaleResolver {
     final candidates = candidatesForVoiceLanguage(voiceLanguage);
     final availableByNormalizedId = {
       for (final localeId in availableLocaleIds)
-        _normalizeLocaleId(localeId): localeId,
+        normalizeLocaleId(localeId): localeId,
     };
 
     String? resolvedLocaleId;
     for (final candidate in candidates) {
-      resolvedLocaleId = availableByNormalizedId[_normalizeLocaleId(candidate)];
+      resolvedLocaleId = availableByNormalizedId[normalizeLocaleId(candidate)];
       if (resolvedLocaleId != null) break;
     }
 
@@ -120,13 +120,53 @@ class VoiceLocaleResolver {
       resolvedLocaleId: resolvedLocaleId,
       usedFallback:
           resolvedLocaleId != null &&
-          _normalizeLocaleId(resolvedLocaleId) !=
-              _normalizeLocaleId(candidates.first),
+          normalizeLocaleId(resolvedLocaleId) !=
+              normalizeLocaleId(candidates.first),
       candidates: candidates,
     );
   }
 
-  static String _normalizeLocaleId(String localeId) {
+  static VoiceLocaleResult resultForAttempt({
+    required String voiceLanguage,
+    required String resolvedLocaleId,
+  }) {
+    final candidates = candidatesForVoiceLanguage(voiceLanguage);
+    return VoiceLocaleResult(
+      requestedVoiceMode: voiceLanguage,
+      preferredLocaleId: candidates.first,
+      resolvedLocaleId: resolvedLocaleId,
+      usedFallback:
+          normalizeLocaleId(resolvedLocaleId) !=
+          normalizeLocaleId(candidates.first),
+      candidates: candidates,
+    );
+  }
+
+  static List<String> runtimeAttemptLocaleIds({
+    required String voiceLanguage,
+    required Iterable<String> availableLocaleIds,
+  }) {
+    final candidates = candidatesForVoiceLanguage(voiceLanguage);
+    final availableByNormalizedId = {
+      for (final localeId in availableLocaleIds)
+        normalizeLocaleId(localeId): localeId,
+    };
+
+    final knownCompatible = <String>[
+      for (final candidate in candidates)
+        if (availableByNormalizedId.containsKey(normalizeLocaleId(candidate)))
+          availableByNormalizedId[normalizeLocaleId(candidate)]!,
+    ];
+    final knownNormalized = knownCompatible.map(normalizeLocaleId).toSet();
+    final remainingCandidates = <String>[
+      for (final candidate in candidates)
+        if (!knownNormalized.contains(normalizeLocaleId(candidate))) candidate,
+    ];
+
+    return [...knownCompatible, ...remainingCandidates];
+  }
+
+  static String normalizeLocaleId(String localeId) {
     return localeId.toLowerCase().replaceAll('-', '_');
   }
 }

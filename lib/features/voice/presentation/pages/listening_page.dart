@@ -44,9 +44,14 @@ class _ListeningPageState extends State<ListeningPage>
   String? _errorText;
   VoiceIntent? _resolvedIntent;
   VoiceLocaleResult? _localeResult;
+  String? _localeStatusLabel;
+  List<String> _localeAttempts = const [];
+  int _localeAttemptIndex = -1;
   bool _isFinishing = false;
   bool _hasNavigated = false;
   bool _hasFinalizedSpeechSession = false;
+  bool _isSwitchingSpeechLocale = false;
+  int _listenSessionGeneration = 0;
 
   @override
   void initState() {
@@ -63,6 +68,7 @@ class _ListeningPageState extends State<ListeningPage>
 
   Future<void> _startListening() async {
     final appState = Provider.of<AppState>(context, listen: false);
+    final generation = ++_listenSessionGeneration;
 
     _listenTimeoutTimer?.cancel();
     _navigateTimer?.cancel();
@@ -75,34 +81,43 @@ class _ListeningPageState extends State<ListeningPage>
       _errorText = null;
       _resolvedIntent = null;
       _localeResult = null;
+      _localeStatusLabel =
+          '${VoiceLocaleResolver.voiceModeLabelFor(appState.voiceLanguage)} Voice Mode · Checking ASR';
+      _localeAttempts = const [];
+      _localeAttemptIndex = -1;
       _isFinishing = false;
       _hasNavigated = false;
       _hasFinalizedSpeechSession = false;
+      _isSwitchingSpeechLocale = false;
     });
 
     try {
       final available = await _speech.initialize(
         onStatus: (status) {
-          if (_isFinishing || _hasFinalizedSpeechSession) return;
+          if (!_isActiveSpeechSession(generation) ||
+              _isFinishing ||
+              _hasFinalizedSpeechSession ||
+              _isSwitchingSpeechLocale) {
+            return;
+          }
           debugPrint('Speech status: $status');
           if (status == 'done') {
             _finishOrShowEmptyState(appState);
           }
         },
         onError: (error) {
-          if (_isFinishing || _hasFinalizedSpeechSession || !mounted) return;
-          debugPrint(
-            'Speech recognition error: ${error.errorMsg}; permanent=${error.permanent}',
+          unawaited(
+            _handleSpeechError(
+              appState,
+              generation,
+              error.errorMsg,
+              permanent: error.permanent,
+            ),
           );
-          _listenTimeoutTimer?.cancel();
-          _hasFinalizedSpeechSession = true;
-          setState(() {
-            _phase = 'error';
-            _errorText = _messageForSpeechError(error.errorMsg);
-          });
         },
       );
 
+      debugPrint('Speech recognizer initialized: $available');
       if (!available) {
         if (!mounted) return;
         _hasFinalizedSpeechSession = true;
@@ -114,31 +129,90 @@ class _ListeningPageState extends State<ListeningPage>
         return;
       }
 
-      final localeResult = await _resolveSpeechLocale(appState.voiceLanguage);
+      await _prepareLocaleAttempts(appState.voiceLanguage, generation);
+      if (!_isActiveSpeechSession(generation)) return;
+
+      await _tryListenWithLocale(appState, generation, 0);
+    } catch (e) {
+      debugPrint('Could not start voice input: $e');
       if (!mounted) return;
-
+      _hasFinalizedSpeechSession = true;
       setState(() {
-        _localeResult = localeResult;
+        _phase = 'error';
+        _errorText = 'Could not start voice input. Please try again.';
       });
+    }
+  }
 
-      if (!localeResult.hasCompatibleLocale) {
-        _hasFinalizedSpeechSession = true;
-        setState(() {
-          _phase = 'error';
-          _errorText =
-              'This voice language is not available on this device. Try another voice language.';
-        });
-        return;
-      }
+  Future<void> _prepareLocaleAttempts(
+    String voiceLanguage,
+    int generation,
+  ) async {
+    final locales = await _speech.locales();
+    final systemLocale = await _speech.systemLocale();
+    final localeIds = locales.map((locale) => locale.localeId).toList();
+    final localeResult = VoiceLocaleResolver.resolve(
+      voiceLanguage: voiceLanguage,
+      availableLocaleIds: localeIds,
+    );
+    final attempts = VoiceLocaleResolver.runtimeAttemptLocaleIds(
+      voiceLanguage: voiceLanguage,
+      availableLocaleIds: localeIds,
+    );
+    final knownCompatible = attempts
+        .where(
+          (attempt) => localeIds.any(
+            (localeId) =>
+                VoiceLocaleResolver.normalizeLocaleId(localeId) ==
+                VoiceLocaleResolver.normalizeLocaleId(attempt),
+          ),
+        )
+        .toList();
 
-      if (localeResult.usedFallback) {
-        debugPrint(
-          '${localeResult.voiceModeLabel} preferred locale ${localeResult.preferredLocaleId} unavailable; using ${localeResult.resolvedLocaleId}.',
-        );
-      }
+    debugPrint('System speech locale: ${systemLocale?.localeId ?? 'unknown'}');
+    debugPrint('Speech locales returned: ${localeIds.length}');
+    debugPrint('Selected voice mode: $voiceLanguage');
+    debugPrint('Candidate locales: ${localeResult.candidates}');
+    debugPrint('Known compatible locales: $knownCompatible');
 
-      await _speech.listen(
-        localeId: localeResult.resolvedLocaleId,
+    if (!_isActiveSpeechSession(generation)) return;
+    setState(() {
+      _localeResult = localeResult.hasCompatibleLocale ? localeResult : null;
+      _localeAttempts = attempts;
+    });
+  }
+
+  Future<void> _tryListenWithLocale(
+    AppState appState,
+    int generation,
+    int attemptIndex,
+  ) async {
+    if (!_isActiveSpeechSession(generation) || _hasFinalizedSpeechSession) {
+      return;
+    }
+    if (attemptIndex >= _localeAttempts.length) {
+      _showVoiceLanguageUnavailable(appState.voiceLanguage);
+      return;
+    }
+
+    final localeId = _localeAttempts[attemptIndex];
+    final attemptResult = VoiceLocaleResolver.resultForAttempt(
+      voiceLanguage: appState.voiceLanguage,
+      resolvedLocaleId: localeId,
+    );
+
+    debugPrint('Trying ASR locale: $localeId');
+    setState(() {
+      _localeAttemptIndex = attemptIndex;
+      _localeResult = null;
+      _localeStatusLabel =
+          '${attemptResult.voiceModeLabel} Voice Mode · Trying $localeId';
+      _isSwitchingSpeechLocale = false;
+    });
+
+    try {
+      final started = await _speech.listen(
+        localeId: localeId,
         listenFor: const Duration(seconds: 10),
         pauseFor: const Duration(seconds: 2),
         listenOptions: stt.SpeechListenOptions(
@@ -146,7 +220,11 @@ class _ListeningPageState extends State<ListeningPage>
           listenMode: stt.ListenMode.confirmation,
         ),
         onResult: (result) {
-          if (!mounted || _isFinishing || _hasFinalizedSpeechSession) return;
+          if (!_isActiveSpeechSession(generation) ||
+              _isFinishing ||
+              _hasFinalizedSpeechSession) {
+            return;
+          }
           final words = result.recognizedWords.trim();
           if (words.isNotEmpty) {
             setState(() {
@@ -160,26 +238,147 @@ class _ListeningPageState extends State<ListeningPage>
         },
       );
 
+      if (!_isActiveSpeechSession(generation) || _hasFinalizedSpeechSession) {
+        return;
+      }
+
+      if (started == false) {
+        debugPrint('ASR listen returned false for: $localeId');
+        _showCouldNotStartVoiceInput();
+        return;
+      }
+
+      debugPrint('ASR listening started with: $localeId');
+      setState(() {
+        _localeResult = attemptResult;
+        _localeStatusLabel = null;
+      });
+      if (attemptResult.usedFallback) {
+        debugPrint(
+          '${attemptResult.voiceModeLabel} preferred locale ${attemptResult.preferredLocaleId} unavailable; using $localeId.',
+        );
+      }
+
       _listenTimeoutTimer = Timer(const Duration(seconds: 11), () {
-        _finishOrShowEmptyState(appState);
+        if (_isActiveSpeechSession(generation)) {
+          _finishOrShowEmptyState(appState);
+        }
       });
     } catch (e) {
-      debugPrint('Could not start voice input: $e');
-      if (!mounted) return;
-      _hasFinalizedSpeechSession = true;
-      setState(() {
-        _phase = 'error';
-        _errorText = 'Could not start voice input. Please try again.';
-      });
+      debugPrint('Could not start ASR locale $localeId: $e');
+      if (_isLanguageSupportError(e.toString())) {
+        await _tryNextSpeechLocale(appState, generation, localeId);
+        return;
+      }
+      if (!_isActiveSpeechSession(generation)) return;
+      _showCouldNotStartVoiceInput();
     }
   }
 
-  Future<VoiceLocaleResult> _resolveSpeechLocale(String voiceLanguage) async {
-    final locales = await _speech.locales();
-    return VoiceLocaleResolver.resolve(
-      voiceLanguage: voiceLanguage,
-      availableLocaleIds: locales.map((locale) => locale.localeId),
+  Future<void> _handleSpeechError(
+    AppState appState,
+    int generation,
+    String errorMsg, {
+    required bool permanent,
+  }) async {
+    if (!_isActiveSpeechSession(generation) ||
+        _isFinishing ||
+        _hasFinalizedSpeechSession ||
+        !mounted) {
+      return;
+    }
+
+    debugPrint('Speech recognition error: $errorMsg; permanent=$permanent');
+
+    if (_isLanguageSupportError(errorMsg)) {
+      final rejectedLocale =
+          _localeAttemptIndex >= 0 &&
+              _localeAttemptIndex < _localeAttempts.length
+          ? _localeAttempts[_localeAttemptIndex]
+          : 'unknown';
+      await _tryNextSpeechLocale(appState, generation, rejectedLocale);
+      return;
+    }
+
+    _listenTimeoutTimer?.cancel();
+    _hasFinalizedSpeechSession = true;
+    setState(() {
+      _phase = 'error';
+      _errorText = _messageForSpeechError(errorMsg);
+    });
+  }
+
+  Future<void> _tryNextSpeechLocale(
+    AppState appState,
+    int generation,
+    String rejectedLocale,
+  ) async {
+    if (!_isActiveSpeechSession(generation) || _hasFinalizedSpeechSession) {
+      return;
+    }
+
+    _listenTimeoutTimer?.cancel();
+    debugPrint('ASR locale rejected: $rejectedLocale');
+
+    final nextIndex = _localeAttemptIndex + 1;
+    if (nextIndex >= _localeAttempts.length) {
+      _showVoiceLanguageUnavailable(appState.voiceLanguage);
+      return;
+    }
+
+    debugPrint('Trying next ASR locale: ${_localeAttempts[nextIndex]}');
+    setState(() => _isSwitchingSpeechLocale = true);
+    await _speech.stop();
+    if (!_isActiveSpeechSession(generation) || _hasFinalizedSpeechSession) {
+      return;
+    }
+    await _tryListenWithLocale(appState, generation, nextIndex);
+  }
+
+  bool _isLanguageSupportError(String errorMsg) {
+    final normalized = errorMsg.toLowerCase();
+    return normalized.contains('error_language_not_supported') ||
+        normalized.contains('error_language_unavailable') ||
+        normalized.contains('language_not_supported') ||
+        normalized.contains('language_unavailable') ||
+        normalized.contains('language not supported') ||
+        normalized.contains('language unavailable');
+  }
+
+  bool _isActiveSpeechSession(int generation) {
+    return mounted && generation == _listenSessionGeneration;
+  }
+
+  void _showVoiceLanguageUnavailable(String voiceLanguage) {
+    if (!mounted || _hasFinalizedSpeechSession) return;
+    _listenTimeoutTimer?.cancel();
+    final candidates = VoiceLocaleResolver.candidatesForVoiceLanguage(
+      voiceLanguage,
     );
+    _hasFinalizedSpeechSession = true;
+    setState(() {
+      _phase = 'error';
+      _localeResult = VoiceLocaleResult(
+        requestedVoiceMode: voiceLanguage,
+        preferredLocaleId: candidates.first,
+        resolvedLocaleId: null,
+        usedFallback: false,
+        candidates: candidates,
+      );
+      _localeStatusLabel = null;
+      _errorText =
+          'This voice language is not available on this device. Try another voice language.';
+    });
+  }
+
+  void _showCouldNotStartVoiceInput() {
+    if (!mounted || _hasFinalizedSpeechSession) return;
+    _listenTimeoutTimer?.cancel();
+    _hasFinalizedSpeechSession = true;
+    setState(() {
+      _phase = 'error';
+      _errorText = 'Could not start voice input. Please try again.';
+    });
   }
 
   void _finishOrShowEmptyState(AppState appState) {
@@ -292,6 +491,7 @@ class _ListeningPageState extends State<ListeningPage>
 
   @override
   void dispose() {
+    _listenSessionGeneration++;
     _listenTimeoutTimer?.cancel();
     _navigateTimer?.cancel();
     unawaited(_speech.stop());
@@ -490,7 +690,9 @@ class _ListeningPageState extends State<ListeningPage>
 
   Widget _buildVoiceBadge(_VoiceTheme voiceTheme) {
     final badgeLabel =
-        _localeResult?.badgeLabel ?? '${voiceTheme.label} Voice Mode';
+        _localeStatusLabel ??
+        _localeResult?.badgeLabel ??
+        '${voiceTheme.label} Voice Mode';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
