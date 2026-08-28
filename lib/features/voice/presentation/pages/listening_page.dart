@@ -93,6 +93,7 @@ class _ListeningPageState extends State<ListeningPage>
 
     try {
       final available = await _speech.initialize(
+        debugLogging: true,
         onStatus: (status) {
           if (!_isActiveSpeechSession(generation) ||
               _isFinishing ||
@@ -162,18 +163,21 @@ class _ListeningPageState extends State<ListeningPage>
     final knownCompatible = attempts
         .where(
           (attempt) => localeIds.any(
-            (localeId) =>
-                VoiceLocaleResolver.normalizeLocaleId(localeId) ==
-                VoiceLocaleResolver.normalizeLocaleId(attempt),
+            (localeId) => VoiceLocaleResolver.isCompatibleLocale(
+              candidateLocaleId: attempt,
+              availableLocaleId: localeId,
+            ),
           ),
         )
         .toList();
 
     debugPrint('System speech locale: ${systemLocale?.localeId ?? 'unknown'}');
     debugPrint('Speech locales returned: ${localeIds.length}');
+    debugPrint('Speech locale IDs: $localeIds');
     debugPrint('Selected voice mode: $voiceLanguage');
     debugPrint('Candidate locales: ${localeResult.candidates}');
     debugPrint('Known compatible locales: $knownCompatible');
+    debugPrint('Runtime ASR attempt list: $attempts');
 
     if (!_isActiveSpeechSession(generation)) return;
     setState(() {
@@ -212,11 +216,12 @@ class _ListeningPageState extends State<ListeningPage>
 
     try {
       final started = await _speech.listen(
-        localeId: localeId,
-        listenFor: const Duration(seconds: 10),
-        pauseFor: const Duration(seconds: 2),
         listenOptions: stt.SpeechListenOptions(
+          localeId: localeId,
+          listenFor: const Duration(seconds: 10),
+          pauseFor: const Duration(seconds: 2),
           partialResults: true,
+          onDevice: false,
           listenMode: stt.ListenMode.confirmation,
         ),
         onResult: (result) {
@@ -231,6 +236,11 @@ class _ListeningPageState extends State<ListeningPage>
               _phase = 'transcribing';
               _transcript = words;
             });
+          }
+          if (words.isNotEmpty) {
+            debugPrint(
+              'ASR [$localeId] ${result.finalResult ? 'final' : 'partial'}: $words',
+            );
           }
           if (result.finalResult) {
             _finishListening(appState, words);

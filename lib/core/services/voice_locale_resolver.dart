@@ -103,14 +103,14 @@ class VoiceLocaleResolver {
     required Iterable<String> availableLocaleIds,
   }) {
     final candidates = candidatesForVoiceLanguage(voiceLanguage);
-    final availableByNormalizedId = {
-      for (final localeId in availableLocaleIds)
-        normalizeLocaleId(localeId): localeId,
-    };
+    final availableLocaleList = availableLocaleIds.toList();
 
     String? resolvedLocaleId;
     for (final candidate in candidates) {
-      resolvedLocaleId = availableByNormalizedId[normalizeLocaleId(candidate)];
+      resolvedLocaleId = _firstCompatibleAvailableLocale(
+        candidate: candidate,
+        availableLocaleIds: availableLocaleList,
+      );
       if (resolvedLocaleId != null) break;
     }
 
@@ -120,8 +120,10 @@ class VoiceLocaleResolver {
       resolvedLocaleId: resolvedLocaleId,
       usedFallback:
           resolvedLocaleId != null &&
-          normalizeLocaleId(resolvedLocaleId) !=
-              normalizeLocaleId(candidates.first),
+          !isCompatibleLocale(
+            candidateLocaleId: candidates.first,
+            availableLocaleId: resolvedLocaleId,
+          ),
       candidates: candidates,
     );
   }
@@ -135,9 +137,10 @@ class VoiceLocaleResolver {
       requestedVoiceMode: voiceLanguage,
       preferredLocaleId: candidates.first,
       resolvedLocaleId: resolvedLocaleId,
-      usedFallback:
-          normalizeLocaleId(resolvedLocaleId) !=
-          normalizeLocaleId(candidates.first),
+      usedFallback: !isCompatibleLocale(
+        candidateLocaleId: candidates.first,
+        availableLocaleId: resolvedLocaleId,
+      ),
       candidates: candidates,
     );
   }
@@ -147,23 +150,92 @@ class VoiceLocaleResolver {
     required Iterable<String> availableLocaleIds,
   }) {
     final candidates = candidatesForVoiceLanguage(voiceLanguage);
-    final availableByNormalizedId = {
-      for (final localeId in availableLocaleIds)
-        normalizeLocaleId(localeId): localeId,
-    };
+    final availableLocaleList = availableLocaleIds.toList();
+    final usedAvailableLocales = <String>{};
+    final matchedCandidates = <String>{};
+    final knownCompatible = <String>[];
 
-    final knownCompatible = <String>[
-      for (final candidate in candidates)
-        if (availableByNormalizedId.containsKey(normalizeLocaleId(candidate)))
-          availableByNormalizedId[normalizeLocaleId(candidate)]!,
-    ];
-    final knownNormalized = knownCompatible.map(normalizeLocaleId).toSet();
+    for (final candidate in candidates) {
+      final available = _firstCompatibleAvailableLocale(
+        candidate: candidate,
+        availableLocaleIds: availableLocaleList.where(
+          (localeId) =>
+              !usedAvailableLocales.contains(normalizeLocaleId(localeId)),
+        ),
+      );
+      if (available != null) {
+        knownCompatible.add(available);
+        usedAvailableLocales.add(normalizeLocaleId(available));
+        matchedCandidates.add(normalizeLocaleId(candidate));
+      }
+    }
+
     final remainingCandidates = <String>[
       for (final candidate in candidates)
-        if (!knownNormalized.contains(normalizeLocaleId(candidate))) candidate,
+        if (!matchedCandidates.contains(normalizeLocaleId(candidate)))
+          toBcp47LocaleId(candidate),
     ];
 
     return [...knownCompatible, ...remainingCandidates];
+  }
+
+  static String? _firstCompatibleAvailableLocale({
+    required String candidate,
+    required Iterable<String> availableLocaleIds,
+  }) {
+    for (final availableLocaleId in availableLocaleIds) {
+      if (isCompatibleLocale(
+        candidateLocaleId: candidate,
+        availableLocaleId: availableLocaleId,
+      )) {
+        return availableLocaleId;
+      }
+    }
+    return null;
+  }
+
+  static bool isCompatibleLocale({
+    required String candidateLocaleId,
+    required String availableLocaleId,
+  }) {
+    final candidate = normalizeLocaleId(candidateLocaleId);
+    final available = normalizeLocaleId(availableLocaleId);
+    if (candidate == available) return true;
+
+    return switch (candidate) {
+      'zh_cn' => const {
+        'zh_hans_cn',
+        'cmn_hans_cn',
+        'cmn_cn',
+      }.contains(available),
+      'zh_tw' => const {
+        'zh_hant_tw',
+        'cmn_hant_tw',
+        'cmn_tw',
+      }.contains(available),
+      'zh_hk' => const {
+        'zh_hant_hk',
+        'cmn_hant_hk',
+        'cmn_hk',
+      }.contains(available),
+      'yue_hk' => const {'yue_hant_hk'}.contains(available),
+      'nan_tw' => const {'nan_hant_tw'}.contains(available),
+      _ => false,
+    };
+  }
+
+  static String toBcp47LocaleId(String localeId) {
+    if (!localeId.contains('_')) return localeId;
+
+    final parts = localeId.split('_');
+    return parts
+        .map((part) {
+          if (part.length == 2 && part.toUpperCase() == part) {
+            return part.toUpperCase();
+          }
+          return part;
+        })
+        .join('-');
   }
 
   static String normalizeLocaleId(String localeId) {
