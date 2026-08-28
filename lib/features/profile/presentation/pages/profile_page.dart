@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/constants/constants.dart';
 import '../../../../core/services/app_state.dart';
+import '../../../../core/services/tts_service.dart';
 import '../../../../shared/widgets/custom_header.dart';
 import '../../../../shared/widgets/ai_tag.dart';
 import '../../../../shared/widgets/badge_widget.dart';
@@ -16,6 +17,51 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  final TtsService _ttsService = TtsService();
+
+  @override
+  void dispose() {
+    _ttsService.stop();
+    super.dispose();
+  }
+
+  Future<void> _previewVoiceSpeed(AppState appState, double rate) async {
+    appState.setVoiceSpeed(rate);
+
+    final previewKey = rate < 1
+        ? 'voiceSpeedPreviewSlow'
+        : rate == 1
+        ? 'voiceSpeedPreviewNormal'
+        : 'voiceSpeedPreviewFast';
+
+    final result = await _ttsService.speak(
+      appState.translate(previewKey),
+      langCode: appState.currentLanguage,
+      speed: rate,
+    );
+
+    if (!mounted) return;
+    if (!result.success) {
+      if (result.failureReason == TtsFailureReason.cancelled) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(appState.translate('voicePreviewUnavailable'))),
+      );
+      return;
+    }
+
+    if (result.usedFallback) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            appState
+                .translate('voicePreviewFallback')
+                .replaceFirst('{language}', result.resolvedLanguageLabel),
+          ),
+        ),
+      );
+    }
+  }
+
   void _showLogoutDialog(BuildContext context, AppState appState) {
     showModalBottomSheet(
       context: context,
@@ -473,7 +519,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         child: Row(
                           children: [
-                            const AITag(label: 'Dialect AI'),
+                            const AITag(label: 'Locale-aware ASR'),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -726,7 +772,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           final isSel = appState.voiceSpeed == rate;
                           return Expanded(
                             child: InkWell(
-                              onTap: () => appState.setVoiceSpeed(rate),
+                              onTap: () => _previewVoiceSpeed(appState, rate),
                               child: Container(
                                 margin: const EdgeInsets.symmetric(
                                   horizontal: 4,
@@ -951,10 +997,14 @@ class _ProfilePageState extends State<ProfilePage> {
                   width: double.infinity,
                   height: 56,
                   child: OutlinedButton(
-                    onPressed: () => Navigator.pushNamed(context, '/rules-admin'),
+                    onPressed: () =>
+                        Navigator.pushNamed(context, '/rules-admin'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF2563EB),
-                      side: const BorderSide(color: Color(0xFFBFDBFE), width: 2),
+                      side: const BorderSide(
+                        color: Color(0xFFBFDBFE),
+                        width: 2,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -966,7 +1016,10 @@ class _ProfilePageState extends State<ProfilePage> {
                         const SizedBox(width: 8),
                         Text(
                           appState.translate('adminSettings'),
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                       ],
                     ),
@@ -987,7 +1040,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       SizedBox(height: 2),
                       Text(
-                        'Powered by ASR · Dialect AI · NLP · LLM · Computer Vision',
+                        'Powered by locale-aware ASR · NLP · Computer Vision',
                         style: TextStyle(
                           fontSize: 10,
                           color: Color(0xFFCBD5E1),

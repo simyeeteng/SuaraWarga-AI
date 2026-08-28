@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../constants/constants.dart';
+import '../models/voice_command.dart';
 import '../config/default_configs.dart';
 import '../utils/solar_calculator.dart';
 import 'translation_service.dart';
@@ -209,21 +209,26 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Simulated Speech and Processing Flows
-  VoiceIntent _pendingIntent = AppConstants.VOICE_UNMATCHED_INTENT;
-  String _latestVoiceTranscript = '';
-  VoiceIntent get pendingIntent => _pendingIntent;
-  String get latestVoiceTranscript => _latestVoiceTranscript;
+  // Voice command and processing state
+  VoiceCommand? _pendingVoiceCommand;
+  VoiceCommand? get pendingVoiceCommand => _pendingVoiceCommand;
 
-  void setPendingIntent(VoiceIntent intent) {
-    _pendingIntent = intent;
-    _latestVoiceTranscript = '';
+  void setVoiceHandoff(VoiceCommand command) {
+    _pendingVoiceCommand = command;
     notifyListeners();
   }
 
-  void setLatestVoiceTranscript(String transcript) {
-    _latestVoiceTranscript = transcript.trim();
+  void clearVoiceHandoff() {
+    _pendingVoiceCommand = null;
     notifyListeners();
+  }
+
+  VoiceCommand? consumePendingVoiceCommand() {
+    final command = _pendingVoiceCommand;
+    if (command == null) return null;
+
+    clearVoiceHandoff();
+    return command;
   }
 
   // Feature specific states

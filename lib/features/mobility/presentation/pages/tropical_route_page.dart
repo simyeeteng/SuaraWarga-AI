@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import '../../../../core/models/voice_command.dart';
 import '../../../../core/services/app_state.dart';
+import '../../../../core/services/route_announcement_builder.dart';
 import '../../../../core/services/routing_service.dart';
+import '../../../../core/services/tts_service.dart';
 import '../../../../core/services/weather_service.dart';
 import '../../../../core/services/transit_service.dart';
 import '../../../../shared/widgets/custom_header.dart';
@@ -20,6 +23,7 @@ class TropicalRoutePage extends StatefulWidget {
 
 class _TropicalRoutePageState extends State<TropicalRoutePage> {
   final RoutingService _routingService = RoutingService();
+  final TtsService _ttsService = TtsService();
   final TextEditingController _apiKeyController = TextEditingController();
   final TextEditingController _originController = TextEditingController(
     text: 'Use current location',
@@ -34,7 +38,13 @@ class _TropicalRoutePageState extends State<TropicalRoutePage> {
   bool _hasOrigin = false;
   bool _hasDestination = false;
   String _voiceTranscript = '';
+  String _voiceLanguage = '';
+  String? _voiceDestination;
+  VoiceRoutePreference? _voiceRoutePreference;
   String? _setupMessage;
+  bool _hasAttemptedAutoRouteSpeech = false;
+  String? _spokenVoiceLabel;
+  String? _routeSpeechStatus;
 
   // GPS state
   GoogleMapController? _mapController;
@@ -69,6 +79,7 @@ class _TropicalRoutePageState extends State<TropicalRoutePage> {
 
   @override
   void dispose() {
+    _ttsService.stop();
     _apiKeyController.dispose();
     _originController.dispose();
     _destController.dispose();
@@ -77,27 +88,47 @@ class _TropicalRoutePageState extends State<TropicalRoutePage> {
   }
 
   Future<void> _prepareInitialRoute(AppState appState) async {
-    final transcript = appState.latestVoiceTranscript;
-    final isVoiceRoute =
-        appState.pendingIntent.targetScreen == 'tropicalRoute' &&
-        transcript.isNotEmpty;
+    final consumedCommand = appState.consumePendingVoiceCommand();
+    final VoiceCommand? voiceRouteCommand =
+        consumedCommand?.target == VoiceCommandTarget.tropicalRoute &&
+            (consumedCommand?.rawTranscript.trim().isNotEmpty ?? false)
+        ? consumedCommand
+        : null;
+    final isVoiceRoute = voiceRouteCommand != null;
+    final transcript = voiceRouteCommand?.rawTranscript.trim() ?? '';
     final destinationQuery = isVoiceRoute
-        ? _destinationFromVoice(transcript)
+        ? voiceRouteCommand.destination?.trim() ?? ''
         : appState.destination.trim();
+    final missingVoiceDestination = isVoiceRoute && destinationQuery.isEmpty;
+    final voicePreference = voiceRouteCommand?.routePreference;
 
     setState(() {
       _openedFromVoice = isVoiceRoute;
       _voiceTranscript = transcript;
-      _setupMessage = destinationQuery.isEmpty
+      _voiceLanguage = isVoiceRoute
+          ? voiceRouteCommand.selectedVoiceLanguage
+          : '';
+      _voiceDestination = voiceRouteCommand?.destination;
+      _voiceRoutePreference = voicePreference;
+      _setupMessage = missingVoiceDestination
+          ? 'I understood that you want a route, but I could not identify the destination. Please enter the destination below.'
+          : destinationQuery.isEmpty
           ? 'Enter a destination or use voice navigation to start routing.'
           : null;
     });
 
-    if (isVoiceRoute) {
-      appState.setSelectedRouteIndex(_routePreferenceIndex(transcript));
+    if (voiceRouteCommand != null) {
+      appState.setDestination('');
+      appState.clearTropicalRoutes(message: _setupMessage);
     }
 
     await _tryAcquireGps(appState, calculateAfter: false);
+    if (!mounted) return;
+    if (missingVoiceDestination) {
+      appState.clearTropicalRoutes(message: _setupMessage);
+      return;
+    }
+
     if (destinationQuery.isNotEmpty) {
       await _setDestinationFromQuery(
         destinationQuery,
@@ -105,87 +136,42 @@ class _TropicalRoutePageState extends State<TropicalRoutePage> {
         calculateAfter: false,
       );
     }
-    _calculateCurrentRoute(appState);
+    if (!mounted) return;
+    if (_hasDestination) {
+      await _calculateCurrentRoute(appState);
+    }
   }
 
-  Future<void> _calculateCurrentRoute(AppState appState) {
+  Future<void> _calculateCurrentRoute(AppState appState) async {
     if (!_hasOrigin || !_hasDestination) {
       final missing = !_hasOrigin && !_hasDestination
           ? 'origin and destination'
           : !_hasOrigin
           ? 'origin'
           : 'destination';
+      final existingMessage = _setupMessage;
       setState(() {
-        _setupMessage = 'Set $missing to calculate a route.';
+        _setupMessage =
+            existingMessage?.startsWith('Could not find') == true ||
+                existingMessage?.startsWith('I understood') == true
+            ? existingMessage
+            : 'Set $missing to calculate a route.';
       });
       appState.clearTropicalRoutes(message: _setupMessage);
-      return Future.value();
+      return;
     }
 
     setState(() => _setupMessage = null);
-    return appState.calculateTropicalRoutes(
+    await appState.calculateTropicalRoutes(
       startLat: _startLat,
       startLng: _startLng,
       endLat: _endLat,
       endLng: _endLng,
     );
-  }
+    if (!mounted) return;
 
-  String _destinationFromVoice(String transcript) {
-    var cleaned = transcript.trim();
-    final patterns = <RegExp>[
-      RegExp(
-        r'^(please\s+)?(take me|bring me|navigate|guide me|go|walk|drive)\s+(to|towards)\s+',
-        caseSensitive: false,
-      ),
-      RegExp(
-        r'^(i want to|i need to|can you)\s+(go|walk|get)\s+to\s+',
-        caseSensitive: false,
-      ),
-      RegExp(
-        r'\b(by|using|with)\s+(the\s+)?(coolest|fastest|covered|shaded|walking)\s+route\b.*$',
-        caseSensitive: false,
-      ),
-      RegExp(
-        r'\b(find|show|calculate)\s+(a\s+)?(route|path)\s+(to|towards)\s+',
-        caseSensitive: false,
-      ),
-    ];
-
-    for (final pattern in patterns) {
-      cleaned = cleaned.replaceAll(pattern, '');
-    }
-
-    cleaned = cleaned
-        .replaceAll(
-          RegExp(
-            r'\b(route|path|navigation|directions)\b',
-            caseSensitive: false,
-          ),
-          '',
-        )
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .trim();
-    return cleaned.isEmpty ? transcript.trim() : cleaned;
-  }
-
-  int _routePreferenceIndex(String transcript) {
-    final normalized = transcript.toLowerCase();
-    if (normalized.contains('fast') || normalized.contains('quick')) return 0;
-    if (normalized.contains('cool') ||
-        normalized.contains('shade') ||
-        normalized.contains('shaded') ||
-        normalized.contains('\u51c9') ||
-        normalized.contains('\u6dbc') ||
-        normalized.contains('\u0b95\u0bc1\u0bb3\u0bbf\u0bb0') ||
-        normalized.contains('liang') ||
-        normalized.contains('leng')) {
-      return 1;
-    }
-    if (normalized.contains('covered') || normalized.contains('shelter')) {
-      return 2;
-    }
-    return 3;
+    _selectRequestedVoiceRoute(appState);
+    await _maybeAutoSpeakRoute(appState);
   }
 
   // ─── GPS acquisition ────────────────────────────────────────────────────────
@@ -317,31 +303,37 @@ class _TropicalRoutePageState extends State<TropicalRoutePage> {
 
   // ─── Dialogs ────────────────────────────────────────────────────────────────
 
-  Future<void> _setDestinationFromQuery(
+  Future<bool> _setDestinationFromQuery(
     String query,
     AppState appState, {
     bool calculateAfter = true,
   }) async {
-    await _setPlaceFromQuery(query, appState, isOrigin: false);
-    if (calculateAfter) _calculateCurrentRoute(appState);
+    final resolved = await _setPlaceFromQuery(query, appState, isOrigin: false);
+    if (resolved && calculateAfter) {
+      await _calculateCurrentRoute(appState);
+    }
+    return resolved;
   }
 
-  Future<void> _setOriginFromQuery(
+  Future<bool> _setOriginFromQuery(
     String query,
     AppState appState, {
     bool calculateAfter = true,
   }) async {
-    await _setPlaceFromQuery(query, appState, isOrigin: true);
-    if (calculateAfter) _calculateCurrentRoute(appState);
+    final resolved = await _setPlaceFromQuery(query, appState, isOrigin: true);
+    if (resolved && calculateAfter) {
+      await _calculateCurrentRoute(appState);
+    }
+    return resolved;
   }
 
-  Future<void> _setPlaceFromQuery(
+  Future<bool> _setPlaceFromQuery(
     String query,
     AppState appState, {
     required bool isOrigin,
   }) async {
     final cleanQuery = query.trim();
-    if (cleanQuery.isEmpty) return;
+    if (cleanQuery.isEmpty) return false;
 
     setState(() {
       _geocoding = true;
@@ -365,7 +357,7 @@ class _TropicalRoutePageState extends State<TropicalRoutePage> {
         nearLng: nearLng,
       );
 
-      if (!mounted) return;
+      if (!mounted) return false;
       setState(() {
         if (isOrigin) {
           _startLat = place.lat;
@@ -378,19 +370,31 @@ class _TropicalRoutePageState extends State<TropicalRoutePage> {
           _endLng = place.lng;
           _destController.text = _shortPlaceName(place.name, cleanQuery);
           _hasDestination = true;
+          if (_openedFromVoice) {
+            _voiceDestination = _destController.text;
+          }
           appState.setDestination(_destController.text);
         }
         _geocoding = false;
         _setupMessage = null;
       });
+      return true;
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) return false;
       setState(() {
         _geocoding = false;
+        if (isOrigin) {
+          _hasOrigin = false;
+          _originController.text = 'Set origin manually';
+        } else {
+          _hasDestination = false;
+          _destController.text = 'Set destination manually';
+        }
         _setupMessage =
-            'Could not find "$cleanQuery". Try a more specific place name.';
+            'Could not find "$cleanQuery". Try a more specific place name or enter it manually.';
       });
       appState.clearTropicalRoutes(message: _setupMessage);
+      return false;
     }
   }
 
@@ -784,7 +788,7 @@ class _TropicalRoutePageState extends State<TropicalRoutePage> {
                         _buildLocationPicker(appState),
                         if (_openedFromVoice) ...[
                           const SizedBox(height: 12),
-                          _buildVoiceRouteBanner(appState),
+                          _buildVoiceRouteBanner(appState, selectedRoute),
                         ],
                         const SizedBox(height: 12),
 
@@ -1021,7 +1025,25 @@ class _TropicalRoutePageState extends State<TropicalRoutePage> {
 
   // ─── GPS Map Widget ─────────────────────────────────────────────────────────
 
-  Widget _buildVoiceRouteBanner(AppState appState) {
+  Widget _buildVoiceRouteBanner(AppState appState, RouteOption? selectedRoute) {
+    final destinationText = _voiceDestination?.trim().isNotEmpty == true
+        ? _voiceDestination!.trim()
+        : 'Destination not identified';
+    final preferenceText = _preferenceLabel(
+      _voiceRoutePreference ?? VoiceRoutePreference.balanced,
+    );
+    final languageText = _voiceLanguage.trim().isNotEmpty
+        ? _voiceLanguage.trim()
+        : 'Selected voice mode';
+    final statusText =
+        _routeSpeechStatus ??
+        _setupMessage ??
+        (_geocoding
+            ? 'Finding destination...'
+            : _hasDestination
+            ? 'Ready to calculate route.'
+            : 'Enter a destination below.');
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -1071,19 +1093,194 @@ class _TropicalRoutePageState extends State<TropicalRoutePage> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Calculating route to ${appState.destination}',
+                  'Voice language: $languageText\nDestination: $destinationText\nPreference: $preferenceText\n$statusText'
+                  '${_spokenVoiceLabel != null ? '\nSpoken voice: $_spokenVoiceLabel' : ''}',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
                     color: Color(0xFF0F172A),
                   ),
                 ),
+                if (selectedRoute != null) ...[
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () =>
+                            _speakSelectedRoute(appState, selectedRoute),
+                        icon: const Icon(Icons.volume_up_rounded, size: 16),
+                        label: Text(appState.translate('routeReadAloud')),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF047857),
+                          side: const BorderSide(color: Color(0xFF86EFAC)),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          _ttsService.stop();
+                        },
+                        icon: const Icon(Icons.stop_rounded, size: 16),
+                        label: Text(appState.translate('routeStopSpeech')),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF991B1B),
+                          side: const BorderSide(color: Color(0xFFFCA5A5)),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  String _preferenceLabel(VoiceRoutePreference preference) {
+    return switch (preference) {
+      VoiceRoutePreference.fastest => 'Fastest',
+      VoiceRoutePreference.coolest => 'Coolest',
+      VoiceRoutePreference.covered => 'Covered',
+      VoiceRoutePreference.balanced => 'Balanced',
+    };
+  }
+
+  String _preferenceRouteId(VoiceRoutePreference preference) {
+    return switch (preference) {
+      VoiceRoutePreference.fastest => 'fastest',
+      VoiceRoutePreference.coolest => 'coolest',
+      VoiceRoutePreference.covered => 'covered',
+      VoiceRoutePreference.balanced => 'balanced',
+    };
+  }
+
+  int _selectedRouteIndexById(List<RouteOption> routes, String routeId) {
+    final requestedIndex = routes.indexWhere((route) => route.id == routeId);
+    if (requestedIndex != -1) return requestedIndex;
+
+    final balancedIndex = routes.indexWhere((route) => route.id == 'balanced');
+    if (balancedIndex != -1) return balancedIndex;
+
+    return routes.isNotEmpty ? 0 : -1;
+  }
+
+  RouteOption? _currentSelectedRoute(AppState appState) {
+    final routes = appState.routes;
+    if (routes.isEmpty) return null;
+
+    final selectedIndex = appState.selectedRouteIndex;
+    if (selectedIndex >= 0 && selectedIndex < routes.length) {
+      return routes[selectedIndex];
+    }
+
+    final balancedIndex = _selectedRouteIndexById(routes, 'balanced');
+    return balancedIndex >= 0 ? routes[balancedIndex] : null;
+  }
+
+  void _selectRequestedVoiceRoute(AppState appState) {
+    if (!_openedFromVoice || appState.routes.isEmpty) return;
+
+    final requestedId = _preferenceRouteId(
+      _voiceRoutePreference ?? VoiceRoutePreference.balanced,
+    );
+    final selectedIndex = _selectedRouteIndexById(appState.routes, requestedId);
+    if (selectedIndex >= 0 && selectedIndex != appState.selectedRouteIndex) {
+      appState.setSelectedRouteIndex(selectedIndex);
+    }
+  }
+
+  Future<void> _maybeAutoSpeakRoute(AppState appState) async {
+    if (!_openedFromVoice || _hasAttemptedAutoRouteSpeech) return;
+    if (!_hasOrigin || !_hasDestination || appState.routes.isEmpty) return;
+    if (appState.loadingRoutes || appState.routingError != null) return;
+
+    final selectedRoute = _currentSelectedRoute(appState);
+    if (selectedRoute == null) return;
+
+    _hasAttemptedAutoRouteSpeech = true;
+    await _speakSelectedRoute(appState, selectedRoute);
+  }
+
+  Future<void> _speakSelectedRoute(
+    AppState appState,
+    RouteOption selectedRoute,
+  ) async {
+    final destination = _voiceDestination?.trim().isNotEmpty == true
+        ? _voiceDestination!.trim()
+        : appState.destination.trim();
+    if (destination.isEmpty) return;
+
+    setState(() => _routeSpeechStatus = 'Preparing spoken route...');
+
+    final voiceMode = _voiceLanguage.trim().isNotEmpty
+        ? _voiceLanguage.trim()
+        : appState.currentLanguage;
+    final resolution = await _ttsService.resolveLocale(voiceMode);
+    if (!mounted) return;
+
+    if (!resolution.hasAvailableLocale) {
+      setState(() {
+        _spokenVoiceLabel = null;
+        _routeSpeechStatus = 'Spoken route is not available on this device.';
+      });
+      _showRouteSpeechSnackBar(appState, 'spokenRouteUnavailable');
+      return;
+    }
+
+    final announcement = RouteAnnouncementBuilder.build(
+      destination: destination,
+      route: selectedRoute,
+      resolvedTtsLocale: resolution.resolvedLocale,
+    );
+
+    final result = await _ttsService.speak(
+      announcement,
+      langCode: voiceMode,
+      speed: appState.voiceSpeed,
+    );
+    if (!mounted) return;
+
+    if (result.failureReason == TtsFailureReason.cancelled) return;
+
+    if (!result.success) {
+      setState(() {
+        _spokenVoiceLabel = null;
+        _routeSpeechStatus = 'Spoken route is not available on this device.';
+      });
+      _showRouteSpeechSnackBar(appState, 'spokenRouteUnavailable');
+      return;
+    }
+
+    setState(() {
+      _spokenVoiceLabel = result.resolvedLanguageLabel;
+      _routeSpeechStatus = 'Route spoken.';
+    });
+
+    if (result.usedFallback) {
+      _showRouteSpeechSnackBar(
+        appState,
+        'spokenRouteFallback',
+        language: result.resolvedLanguageLabel,
+      );
+    }
+  }
+
+  void _showRouteSpeechSnackBar(
+    AppState appState,
+    String key, {
+    String? language,
+  }) {
+    final message = appState
+        .translate(key)
+        .replaceAll('{language}', language ?? '');
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget _buildRoutingStatusCard(AppState appState, String? routingError) {

@@ -7,21 +7,20 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../../../../app/routes.dart';
 import '../../../../core/constants/constants.dart';
+import '../../../../core/models/voice_command.dart';
 import '../../../../core/services/app_state.dart';
+import '../../../../core/services/voice_command_parser.dart';
+import '../../../../core/services/voice_locale_resolver.dart';
 
-class _DialectTheme {
+class _VoiceTheme {
   final Color accent;
   final Color glow;
-  final String dialectName;
-  final String badgeLabel;
-  final int confidence;
+  final String label;
 
-  const _DialectTheme({
+  const _VoiceTheme({
     required this.accent,
     required this.glow,
-    required this.dialectName,
-    required this.badgeLabel,
-    required this.confidence,
+    required this.label,
   });
 }
 
@@ -44,7 +43,15 @@ class _ListeningPageState extends State<ListeningPage>
   String _transcript = '';
   String? _errorText;
   VoiceIntent? _resolvedIntent;
+  VoiceLocaleResult? _localeResult;
+  String? _localeStatusLabel;
+  List<String> _localeAttempts = const [];
+  int _localeAttemptIndex = -1;
   bool _isFinishing = false;
+  bool _hasNavigated = false;
+  bool _hasFinalizedSpeechSession = false;
+  bool _isSwitchingSpeechLocale = false;
+  int _listenSessionGeneration = 0;
 
   @override
   void initState() {
@@ -61,6 +68,7 @@ class _ListeningPageState extends State<ListeningPage>
 
   Future<void> _startListening() async {
     final appState = Provider.of<AppState>(context, listen: false);
+    final generation = ++_listenSessionGeneration;
 
     _listenTimeoutTimer?.cancel();
     _navigateTimer?.cancel();
@@ -72,67 +80,64 @@ class _ListeningPageState extends State<ListeningPage>
       _transcript = '';
       _errorText = null;
       _resolvedIntent = null;
+      _localeResult = null;
+      _localeStatusLabel =
+          '${VoiceLocaleResolver.voiceModeLabelFor(appState.voiceLanguage)} Voice Mode · Checking ASR';
+      _localeAttempts = const [];
+      _localeAttemptIndex = -1;
       _isFinishing = false;
+      _hasNavigated = false;
+      _hasFinalizedSpeechSession = false;
+      _isSwitchingSpeechLocale = false;
     });
 
     try {
       final available = await _speech.initialize(
+        debugLogging: true,
         onStatus: (status) {
-          if (_isFinishing) return;
-          if (status == 'done' || status == 'notListening') {
+          if (!_isActiveSpeechSession(generation) ||
+              _isFinishing ||
+              _hasFinalizedSpeechSession ||
+              _isSwitchingSpeechLocale) {
+            return;
+          }
+          debugPrint('Speech status: $status');
+          if (status == 'done') {
             _finishOrShowEmptyState(appState);
           }
         },
         onError: (error) {
-          if (_isFinishing || !mounted) return;
-          setState(() {
-            _phase = 'error';
-            _errorText = error.errorMsg.isNotEmpty
-                ? error.errorMsg
-                : 'Voice recognition stopped. Please try again.';
-          });
+          unawaited(
+            _handleSpeechError(
+              appState,
+              generation,
+              error.errorMsg,
+              permanent: error.permanent,
+            ),
+          );
         },
       );
 
+      debugPrint('Speech recognizer initialized: $available');
       if (!available) {
         if (!mounted) return;
+        _hasFinalizedSpeechSession = true;
         setState(() {
           _phase = 'error';
           _errorText =
-              'Voice recognition is not available on this device. Check microphone and speech permissions.';
+              'Voice recognition is not available on this device. Try another device or type your request.';
         });
         return;
       }
 
-      final localeId = await _resolveSpeechLocale(appState.voiceLanguage);
-      await _speech.listen(
-        localeId: localeId,
-        listenFor: const Duration(seconds: 10),
-        pauseFor: const Duration(seconds: 2),
-        listenOptions: stt.SpeechListenOptions(
-          partialResults: true,
-          listenMode: stt.ListenMode.confirmation,
-        ),
-        onResult: (result) {
-          if (!mounted || _isFinishing) return;
-          final words = result.recognizedWords.trim();
-          if (words.isNotEmpty) {
-            setState(() {
-              _phase = 'transcribing';
-              _transcript = words;
-            });
-          }
-          if (result.finalResult) {
-            _finishListening(appState, words);
-          }
-        },
-      );
+      await _prepareLocaleAttempts(appState.voiceLanguage, generation);
+      if (!_isActiveSpeechSession(generation)) return;
 
-      _listenTimeoutTimer = Timer(const Duration(seconds: 11), () {
-        _finishOrShowEmptyState(appState);
-      });
+      await _tryListenWithLocale(appState, generation, 0);
     } catch (e) {
+      debugPrint('Could not start voice input: $e');
       if (!mounted) return;
+      _hasFinalizedSpeechSession = true;
       setState(() {
         _phase = 'error';
         _errorText = 'Could not start voice input. Please try again.';
@@ -140,70 +145,288 @@ class _ListeningPageState extends State<ListeningPage>
     }
   }
 
-  Future<String?> _resolveSpeechLocale(String voiceLanguage) async {
+  Future<void> _prepareLocaleAttempts(
+    String voiceLanguage,
+    int generation,
+  ) async {
     final locales = await _speech.locales();
-    final normalizedLocales = {
-      for (final locale in locales)
-        locale.localeId.toLowerCase().replaceAll('-', '_'): locale.localeId,
-    };
+    final systemLocale = await _speech.systemLocale();
+    final localeIds = locales.map((locale) => locale.localeId).toList();
+    final localeResult = VoiceLocaleResolver.resolve(
+      voiceLanguage: voiceLanguage,
+      availableLocaleIds: localeIds,
+    );
+    final attempts = VoiceLocaleResolver.runtimeAttemptLocaleIds(
+      voiceLanguage: voiceLanguage,
+      availableLocaleIds: localeIds,
+    );
+    final knownCompatible = attempts
+        .where(
+          (attempt) => localeIds.any(
+            (localeId) => VoiceLocaleResolver.isCompatibleLocale(
+              candidateLocaleId: attempt,
+              availableLocaleId: localeId,
+            ),
+          ),
+        )
+        .toList();
 
-    final normalizedVoice = voiceLanguage.toLowerCase();
-    final candidates = normalizedVoice.contains('cantonese')
-        ? const ['yue_HK', 'zh_HK', 'zh_TW', 'zh_CN']
-        : normalizedVoice.contains('hokkien')
-        ? const ['nan_TW', 'zh_TW', 'zh_HK', 'zh_CN']
-        : normalizedVoice.contains('mandarin') ||
-              normalizedVoice.contains('chinese')
-        ? const ['zh_CN', 'zh_TW', 'zh_HK']
-        : normalizedVoice.contains('tamil')
-        ? const ['ta_IN', 'ta_MY', 'ta_SG']
-        : normalizedVoice.contains('malay')
-        ? const ['ms_MY', 'id_ID']
-        : const ['en_US', 'en_GB', 'en_MY'];
+    debugPrint('System speech locale: ${systemLocale?.localeId ?? 'unknown'}');
+    debugPrint('Speech locales returned: ${localeIds.length}');
+    debugPrint('Speech locale IDs: $localeIds');
+    debugPrint('Selected voice mode: $voiceLanguage');
+    debugPrint('Candidate locales: ${localeResult.candidates}');
+    debugPrint('Known compatible locales: $knownCompatible');
+    debugPrint('Runtime ASR attempt list: $attempts');
 
-    for (final candidate in candidates) {
-      final match = normalizedLocales[candidate.toLowerCase()];
-      if (match != null) return match;
+    if (!_isActiveSpeechSession(generation)) return;
+    setState(() {
+      _localeResult = localeResult.hasCompatibleLocale ? localeResult : null;
+      _localeAttempts = attempts;
+    });
+  }
+
+  Future<void> _tryListenWithLocale(
+    AppState appState,
+    int generation,
+    int attemptIndex,
+  ) async {
+    if (!_isActiveSpeechSession(generation) || _hasFinalizedSpeechSession) {
+      return;
+    }
+    if (attemptIndex >= _localeAttempts.length) {
+      _showVoiceLanguageUnavailable(appState.voiceLanguage);
+      return;
     }
 
-    final languageCode = candidates.first.split('_').first.toLowerCase();
-    for (final entry in normalizedLocales.entries) {
-      if (entry.key.startsWith('${languageCode}_')) return entry.value;
+    final localeId = _localeAttempts[attemptIndex];
+    final attemptResult = VoiceLocaleResolver.resultForAttempt(
+      voiceLanguage: appState.voiceLanguage,
+      resolvedLocaleId: localeId,
+    );
+
+    debugPrint('Trying ASR locale: $localeId');
+    setState(() {
+      _localeAttemptIndex = attemptIndex;
+      _localeResult = null;
+      _localeStatusLabel =
+          '${attemptResult.voiceModeLabel} Voice Mode · Trying $localeId';
+      _isSwitchingSpeechLocale = false;
+    });
+
+    try {
+      final started = await _speech.listen(
+        listenOptions: stt.SpeechListenOptions(
+          localeId: localeId,
+          listenFor: const Duration(seconds: 10),
+          pauseFor: const Duration(seconds: 2),
+          partialResults: true,
+          onDevice: false,
+          listenMode: stt.ListenMode.confirmation,
+        ),
+        onResult: (result) {
+          if (!_isActiveSpeechSession(generation) ||
+              _isFinishing ||
+              _hasFinalizedSpeechSession) {
+            return;
+          }
+          final words = result.recognizedWords.trim();
+          if (words.isNotEmpty) {
+            setState(() {
+              _phase = 'transcribing';
+              _transcript = words;
+            });
+          }
+          if (words.isNotEmpty) {
+            debugPrint(
+              'ASR [$localeId] ${result.finalResult ? 'final' : 'partial'}: $words',
+            );
+          }
+          if (result.finalResult) {
+            _finishListening(appState, words);
+          }
+        },
+      );
+
+      if (!_isActiveSpeechSession(generation) || _hasFinalizedSpeechSession) {
+        return;
+      }
+
+      if (started == false) {
+        debugPrint('ASR listen returned false for: $localeId');
+        _showCouldNotStartVoiceInput();
+        return;
+      }
+
+      debugPrint('ASR listening started with: $localeId');
+      setState(() {
+        _localeResult = attemptResult;
+        _localeStatusLabel = null;
+      });
+      if (attemptResult.usedFallback) {
+        debugPrint(
+          '${attemptResult.voiceModeLabel} preferred locale ${attemptResult.preferredLocaleId} unavailable; using $localeId.',
+        );
+      }
+
+      _listenTimeoutTimer = Timer(const Duration(seconds: 11), () {
+        if (_isActiveSpeechSession(generation)) {
+          _finishOrShowEmptyState(appState);
+        }
+      });
+    } catch (e) {
+      debugPrint('Could not start ASR locale $localeId: $e');
+      if (_isLanguageSupportError(e.toString())) {
+        await _tryNextSpeechLocale(appState, generation, localeId);
+        return;
+      }
+      if (!_isActiveSpeechSession(generation)) return;
+      _showCouldNotStartVoiceInput();
     }
-    return null;
+  }
+
+  Future<void> _handleSpeechError(
+    AppState appState,
+    int generation,
+    String errorMsg, {
+    required bool permanent,
+  }) async {
+    if (!_isActiveSpeechSession(generation) ||
+        _isFinishing ||
+        _hasFinalizedSpeechSession ||
+        !mounted) {
+      return;
+    }
+
+    debugPrint('Speech recognition error: $errorMsg; permanent=$permanent');
+
+    if (_isLanguageSupportError(errorMsg)) {
+      final rejectedLocale =
+          _localeAttemptIndex >= 0 &&
+              _localeAttemptIndex < _localeAttempts.length
+          ? _localeAttempts[_localeAttemptIndex]
+          : 'unknown';
+      await _tryNextSpeechLocale(appState, generation, rejectedLocale);
+      return;
+    }
+
+    _listenTimeoutTimer?.cancel();
+    _hasFinalizedSpeechSession = true;
+    setState(() {
+      _phase = 'error';
+      _errorText = _messageForSpeechError(errorMsg);
+    });
+  }
+
+  Future<void> _tryNextSpeechLocale(
+    AppState appState,
+    int generation,
+    String rejectedLocale,
+  ) async {
+    if (!_isActiveSpeechSession(generation) || _hasFinalizedSpeechSession) {
+      return;
+    }
+
+    _listenTimeoutTimer?.cancel();
+    debugPrint('ASR locale rejected: $rejectedLocale');
+
+    final nextIndex = _localeAttemptIndex + 1;
+    if (nextIndex >= _localeAttempts.length) {
+      _showVoiceLanguageUnavailable(appState.voiceLanguage);
+      return;
+    }
+
+    debugPrint('Trying next ASR locale: ${_localeAttempts[nextIndex]}');
+    setState(() => _isSwitchingSpeechLocale = true);
+    await _speech.stop();
+    if (!_isActiveSpeechSession(generation) || _hasFinalizedSpeechSession) {
+      return;
+    }
+    await _tryListenWithLocale(appState, generation, nextIndex);
+  }
+
+  bool _isLanguageSupportError(String errorMsg) {
+    final normalized = errorMsg.toLowerCase();
+    return normalized.contains('error_language_not_supported') ||
+        normalized.contains('error_language_unavailable') ||
+        normalized.contains('language_not_supported') ||
+        normalized.contains('language_unavailable') ||
+        normalized.contains('language not supported') ||
+        normalized.contains('language unavailable');
+  }
+
+  bool _isActiveSpeechSession(int generation) {
+    return mounted && generation == _listenSessionGeneration;
+  }
+
+  void _showVoiceLanguageUnavailable(String voiceLanguage) {
+    if (!mounted || _hasFinalizedSpeechSession) return;
+    _listenTimeoutTimer?.cancel();
+    final candidates = VoiceLocaleResolver.candidatesForVoiceLanguage(
+      voiceLanguage,
+    );
+    _hasFinalizedSpeechSession = true;
+    setState(() {
+      _phase = 'error';
+      _localeResult = VoiceLocaleResult(
+        requestedVoiceMode: voiceLanguage,
+        preferredLocaleId: candidates.first,
+        resolvedLocaleId: null,
+        usedFallback: false,
+        candidates: candidates,
+      );
+      _localeStatusLabel = null;
+      _errorText =
+          'This voice language is not available on this device. Try another voice language.';
+    });
+  }
+
+  void _showCouldNotStartVoiceInput() {
+    if (!mounted || _hasFinalizedSpeechSession) return;
+    _listenTimeoutTimer?.cancel();
+    _hasFinalizedSpeechSession = true;
+    setState(() {
+      _phase = 'error';
+      _errorText = 'Could not start voice input. Please try again.';
+    });
   }
 
   void _finishOrShowEmptyState(AppState appState) {
-    if (_isFinishing) return;
+    if (_isFinishing || _hasFinalizedSpeechSession) return;
     if (_transcript.trim().isNotEmpty) {
       _finishListening(appState, _transcript);
       return;
     }
 
     _listenTimeoutTimer?.cancel();
+    _hasFinalizedSpeechSession = true;
+    unawaited(_speech.stop());
     if (!mounted) return;
     setState(() {
       _phase = 'error';
-      _errorText = "I didn't catch anything. Tap retry and speak again.";
+      _errorText = "I didn't hear anything. Tap Retry and speak again.";
     });
   }
 
   void _finishListening(AppState appState, String transcript) {
     final cleanTranscript = transcript.trim();
-    if (_isFinishing || cleanTranscript.isEmpty) return;
+    if (_isFinishing || _hasFinalizedSpeechSession || cleanTranscript.isEmpty) {
+      return;
+    }
 
     _isFinishing = true;
+    _hasFinalizedSpeechSession = true;
     _listenTimeoutTimer?.cancel();
     unawaited(_speech.stop());
 
-    final intent = AppConstants.intentForTranscript(
-      cleanTranscript,
-      appState.voiceLanguage,
+    final command = const VoiceCommandParser().parse(
+      transcript: cleanTranscript,
+      voiceLanguage: appState.voiceLanguage,
     );
+    final intent = AppConstants.intentForCommand(command);
 
     if (intent.targetScreen == 'home') {
       _isFinishing = false;
-      appState.setLatestVoiceTranscript(cleanTranscript);
       if (!mounted) return;
       setState(() {
         _phase = 'error';
@@ -214,8 +437,11 @@ class _ListeningPageState extends State<ListeningPage>
       return;
     }
 
-    appState.setPendingIntent(intent);
-    appState.setLatestVoiceTranscript(cleanTranscript);
+    if (command.target == VoiceCommandTarget.tropicalRoute) {
+      appState.setVoiceHandoff(command);
+    } else {
+      appState.clearVoiceHandoff();
+    }
 
     if (!mounted) return;
     setState(() {
@@ -231,7 +457,10 @@ class _ListeningPageState extends State<ListeningPage>
 
   void _openResolvedIntent() {
     final intent = _resolvedIntent;
-    if (intent == null) return;
+    if (intent == null || !mounted || _hasNavigated) return;
+
+    _hasNavigated = true;
+    _navigateTimer?.cancel();
 
     final route = switch (intent.targetScreen) {
       'formAssistant' => AppRoutes.formAssistant,
@@ -245,8 +474,34 @@ class _ListeningPageState extends State<ListeningPage>
     Navigator.pushReplacementNamed(context, route);
   }
 
+  String _messageForSpeechError(String errorMsg) {
+    final normalized = errorMsg.toLowerCase();
+
+    if (normalized.contains('permission') ||
+        normalized.contains('denied') ||
+        normalized.contains('not_allowed')) {
+      return 'Microphone access is needed for voice input. Please allow microphone permission and try again.';
+    }
+
+    if (normalized.contains('timeout') ||
+        normalized.contains('error_speech_timeout')) {
+      return 'Listening timed out. Tap Retry and speak again.';
+    }
+
+    if (normalized.contains('no_match') || normalized.contains('no match')) {
+      return "I didn't hear anything. Tap Retry and speak again.";
+    }
+
+    if (normalized.contains('network')) {
+      return 'Voice recognition needs a better connection. Please try again.';
+    }
+
+    return 'Voice recognition stopped. Please try again.';
+  }
+
   @override
   void dispose() {
+    _listenSessionGeneration++;
     _listenTimeoutTimer?.cancel();
     _navigateTimer?.cancel();
     unawaited(_speech.stop());
@@ -254,46 +509,41 @@ class _ListeningPageState extends State<ListeningPage>
     super.dispose();
   }
 
-  _DialectTheme _getDialectTheme(String language) {
-    final normalized = language.toLowerCase();
+  _VoiceTheme _getVoiceTheme(String language) {
+    final label = VoiceLocaleResolver.voiceModeLabelFor(language);
 
-    if (normalized.contains('hokkien')) {
-      return const _DialectTheme(
+    return switch (label) {
+      'Mandarin' => const _VoiceTheme(
+        accent: Color(0xFFE11D48),
+        glow: Color(0xFFFDA4AF),
+        label: 'Mandarin',
+      ),
+      'Tamil' => const _VoiceTheme(
+        accent: Color(0xFFEA580C),
+        glow: Color(0xFFFDBA74),
+        label: 'Tamil',
+      ),
+      'Hokkien' => const _VoiceTheme(
         accent: Color(0xFFF59E0B),
         glow: Color(0xFFFCD34D),
-        dialectName: 'Penang Hokkien',
-        badgeLabel: '🗣️ Penang Hokkien · 96% Match',
-        confidence: 96,
-      );
-    }
-
-    if (normalized.contains('cantonese')) {
-      return const _DialectTheme(
+        label: 'Hokkien',
+      ),
+      'Cantonese' => const _VoiceTheme(
         accent: Color(0xFF7C3AED),
         glow: Color(0xFFC4B5FD),
-        dialectName: 'Cantonese',
-        badgeLabel: '🗣️ Cantonese · 94% Match',
-        confidence: 94,
-      );
-    }
-
-    if (normalized.contains('malay')) {
-      return const _DialectTheme(
+        label: 'Cantonese',
+      ),
+      'Malay' => const _VoiceTheme(
         accent: Color(0xFF10B981),
         glow: Color(0xFF6EE7B7),
-        dialectName: 'Malay',
-        badgeLabel: '🗣️ Malay · 92% Match',
-        confidence: 92,
-      );
-    }
-
-    return const _DialectTheme(
-      accent: Color(0xFF2563EB),
-      glow: Color(0xFF93C5FD),
-      dialectName: 'English',
-      badgeLabel: '🗣️ English · 95% Match',
-      confidence: 95,
-    );
+        label: 'Malay',
+      ),
+      _ => const _VoiceTheme(
+        accent: Color(0xFF2563EB),
+        glow: Color(0xFF93C5FD),
+        label: 'English',
+      ),
+    };
   }
 
   @override
@@ -302,7 +552,8 @@ class _ListeningPageState extends State<ListeningPage>
     final intent = _resolvedIntent;
     final isError = _phase == 'error';
     final isDone = _phase == 'done';
-    final dialectTheme = _getDialectTheme(appState.voiceLanguage);
+    final isBusy = _phase == 'listening' || _phase == 'transcribing';
+    final voiceTheme = _getVoiceTheme(appState.voiceLanguage);
 
     return Scaffold(
       body: Container(
@@ -372,15 +623,15 @@ class _ListeningPageState extends State<ListeningPage>
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             _buildMicOrb(
-                              dialectTheme: dialectTheme,
+                              voiceTheme: voiceTheme,
                               isError: isError,
                               isDone: isDone,
                             ),
                             const SizedBox(height: 16),
-                            _buildDialectBadge(dialectTheme),
+                            _buildVoiceBadge(voiceTheme),
                             const SizedBox(height: 20),
                             if (_phase == 'listening')
-                              _AudioWaves(color: dialectTheme.accent),
+                              _AudioWaves(color: voiceTheme.accent),
                             if (_phase != 'listening')
                               const SizedBox(height: 48),
                             const SizedBox(height: 28),
@@ -406,7 +657,9 @@ class _ListeningPageState extends State<ListeningPage>
                     child: ElevatedButton.icon(
                       onPressed: isError
                           ? _startListening
-                          : _openResolvedIntent,
+                          : isDone && intent != null
+                          ? _openResolvedIntent
+                          : null,
                       icon: Icon(
                         isError
                             ? Icons.refresh_rounded
@@ -419,12 +672,20 @@ class _ListeningPageState extends State<ListeningPage>
                             ? 'Retry voice input'
                             : isDone && intent != null
                             ? 'Open ${intent.service}'
-                            : 'Listening...',
+                            : _phase == 'transcribing'
+                            ? 'Recognising...'
+                            : isBusy
+                            ? 'Listening...'
+                            : 'Please wait...',
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isError
                             ? const Color(0xFF2563EB)
-                            : const Color(0xFF10B981),
+                            : isDone
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFF64748B),
+                        disabledBackgroundColor: const Color(0xFF64748B),
+                        disabledForegroundColor: Colors.white70,
                       ),
                     ),
                   ),
@@ -437,16 +698,21 @@ class _ListeningPageState extends State<ListeningPage>
     );
   }
 
-  Widget _buildDialectBadge(_DialectTheme dialectTheme) {
+  Widget _buildVoiceBadge(_VoiceTheme voiceTheme) {
+    final badgeLabel =
+        _localeStatusLabel ??
+        _localeResult?.badgeLabel ??
+        '${voiceTheme.label} Voice Mode';
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: dialectTheme.accent.withValues(alpha: 0.18),
-        border: Border.all(color: dialectTheme.accent.withValues(alpha: 0.5)),
+        color: voiceTheme.accent.withValues(alpha: 0.18),
+        border: Border.all(color: voiceTheme.accent.withValues(alpha: 0.5)),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        dialectTheme.badgeLabel,
+        badgeLabel,
         style: const TextStyle(
           color: Colors.white,
           fontSize: 12,
@@ -457,7 +723,7 @@ class _ListeningPageState extends State<ListeningPage>
   }
 
   Widget _buildMicOrb({
-    required _DialectTheme dialectTheme,
+    required _VoiceTheme voiceTheme,
     required bool isError,
     required bool isDone,
   }) {
@@ -465,7 +731,7 @@ class _ListeningPageState extends State<ListeningPage>
         ? const Color(0xFFEF4444)
         : isDone
         ? const Color(0xFF10B981)
-        : dialectTheme.accent;
+        : voiceTheme.accent;
 
     return Stack(
       alignment: Alignment.center,
@@ -482,7 +748,7 @@ class _ListeningPageState extends State<ListeningPage>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: dialectTheme.glow.withValues(
+                      color: voiceTheme.glow.withValues(
                         alpha: (1.0 - progress) * 0.45,
                       ),
                       width: 1.5,
@@ -507,7 +773,7 @@ class _ListeningPageState extends State<ListeningPage>
             shape: BoxShape.circle,
             gradient: RadialGradient(
               colors: [
-                dialectTheme.glow.withValues(alpha: 0.75),
+                voiceTheme.glow.withValues(alpha: 0.75),
                 color.withValues(alpha: 0.45),
                 color.withValues(alpha: 0.2),
               ],
@@ -697,7 +963,9 @@ class _AudioWavesState extends State<_AudioWaves>
               final amplitude = (math.sin(phase * 1.7) + 1.0) / 2.0;
               final secondary = (math.cos(phase * 1.2 + 0.8) + 1.0) / 2.0;
               final height = 10 + (amplitude * 28) + (secondary * 10);
-              final barColor = widget.color.withValues(alpha: 0.7 + (secondary * 0.3));
+              final barColor = widget.color.withValues(
+                alpha: 0.7 + (secondary * 0.3),
+              );
 
               return Container(
                 width: 5,

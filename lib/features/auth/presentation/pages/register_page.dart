@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/constants/constants.dart';
 import '../../../../core/services/app_state.dart';
-import '../../../../shared/widgets/badge_widget.dart';
 import '../../../../shared/widgets/ai_tag.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -58,7 +57,8 @@ class _RegisterPageState extends State<RegisterPage> {
     }
     if (digits.length > 8) {
       final end = math.min(12, digits.length);
-      formatted = '${digits.substring(0, 6)}-${digits.substring(6, 8)}-${digits.substring(8, end)}';
+      formatted =
+          '${digits.substring(0, 6)}-${digits.substring(6, 8)}-${digits.substring(8, end)}';
     }
     _icController.value = TextEditingValue(
       text: formatted,
@@ -87,7 +87,9 @@ class _RegisterPageState extends State<RegisterPage> {
 
     if (_step == 2) {
       if (_selectedVoiceLang.isEmpty) {
-        setState(() => _errorText = 'Please select your voice listening language.');
+        setState(
+          () => _errorText = 'Please select your voice listening language.',
+        );
         return;
       }
     }
@@ -106,7 +108,9 @@ class _RegisterPageState extends State<RegisterPage> {
 
     if (_step == 4) {
       if (_ecNameController.text.trim().isEmpty) {
-        setState(() => _errorText = "Please enter your emergency contact's name.");
+        setState(
+          () => _errorText = "Please enter your emergency contact's name.",
+        );
         return;
       }
       if (_ecPhoneController.text.trim().length < 10) {
@@ -123,18 +127,20 @@ class _RegisterPageState extends State<RegisterPage> {
       Future.delayed(const Duration(milliseconds: 1600), () {
         if (!mounted) return;
         setState(() => _isLoading = false);
-        appState.login(UserProfile(
-          name: _nameController.text.trim(),
-          ic: _icController.text.replaceAll(RegExp(r'\D'), ''),
-          phone: _phoneController.text.trim(),
-          uiLang: _selectedUiLang,
-          voiceLang: _selectedVoiceLang,
-          emergencyContact: EmergencyContact(
-            name: _ecNameController.text.trim(),
-            phone: _ecPhoneController.text.trim(),
-            relationship: _selectedRelationship,
+        appState.login(
+          UserProfile(
+            name: _nameController.text.trim(),
+            ic: _icController.text.replaceAll(RegExp(r'\D'), ''),
+            phone: _phoneController.text.trim(),
+            uiLang: _selectedUiLang,
+            voiceLang: _selectedVoiceLang,
+            emergencyContact: EmergencyContact(
+              name: _ecNameController.text.trim(),
+              phone: _ecPhoneController.text.trim(),
+              relationship: _selectedRelationship,
+            ),
           ),
-        ));
+        );
         Navigator.pushReplacementNamed(context, AppRoutes.home);
       });
       return;
@@ -171,14 +177,23 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     final appState = Provider.of<AppState>(context);
 
-    final stepLabelKeys = ['regPersonalInfo', 'regLangSetup', 'regSetPassword', 'regEmergencyStep'];
+    final stepLabelKeys = [
+      'regPersonalInfo',
+      'regLangSetup',
+      'regSetPassword',
+      'regEmergencyStep',
+    ];
     final currentStepTitle = appState.translate(stepLabelKeys[_step - 1]);
 
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF2563EB), Color(0xFF1D4ED8), Color(0xFF1E3A8A)], // from-blue-600 via-blue-700 to-blue-900
+            colors: [
+              Color(0xFF2563EB),
+              Color(0xFF1D4ED8),
+              Color(0xFF1E3A8A),
+            ], // from-blue-600 via-blue-700 to-blue-900
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -187,15 +202,27 @@ class _RegisterPageState extends State<RegisterPage> {
           children: [
             // Top Navigation header
             Padding(
-              padding: const EdgeInsets.only(left: 20, right: 20, top: 48, bottom: 12),
+              padding: const EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 48,
+                bottom: 12,
+              ),
               child: Row(
                 children: [
                   IconButton(
-                    icon: Icon(_step > 1 ? Icons.arrow_back_rounded : Icons.close_rounded, color: Colors.white),
+                    icon: Icon(
+                      _step > 1
+                          ? Icons.arrow_back_rounded
+                          : Icons.close_rounded,
+                      color: Colors.white,
+                    ),
                     onPressed: _prevStep,
                     style: IconButton.styleFrom(
                       backgroundColor: Colors.white.withOpacity(0.2),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -205,15 +232,23 @@ class _RegisterPageState extends State<RegisterPage> {
                       children: [
                         Text(
                           appState.translate('createAccount'),
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white),
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
                         ),
                         Text(
                           '${appState.translate('regStepOf')} $_step ${appState.translate('regStepOf2')} $currentStepTitle',
-                          style: const TextStyle(fontSize: 13, color: Color(0xFFBFDBFE), fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFFBFDBFE),
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
-                  )
+                  ),
                 ],
               ),
             ),
@@ -228,7 +263,9 @@ class _RegisterPageState extends State<RegisterPage> {
                       height: 6,
                       margin: EdgeInsets.only(right: index < 3 ? 8 : 0),
                       decoration: BoxDecoration(
-                        color: active ? Colors.white : Colors.white.withOpacity(0.25),
+                        color: active
+                            ? Colors.white
+                            : Colors.white.withOpacity(0.25),
                         borderRadius: BorderRadius.circular(999),
                       ),
                     ),
@@ -244,7 +281,10 @@ class _RegisterPageState extends State<RegisterPage> {
                   color: Colors.white,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 32,
+                ),
                 child: Column(
                   children: [
                     Expanded(
@@ -259,15 +299,23 @@ class _RegisterPageState extends State<RegisterPage> {
                             if (_errorText.isNotEmpty) ...[
                               const SizedBox(height: 16),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFFEF2F2),
-                                  border: Border.all(color: const Color(0xFFFCA5A5)),
+                                  border: Border.all(
+                                    color: const Color(0xFFFCA5A5),
+                                  ),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.error_outline_rounded, color: Colors.redAccent),
+                                    const Icon(
+                                      Icons.error_outline_rounded,
+                                      color: Colors.redAccent,
+                                    ),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
@@ -293,7 +341,9 @@ class _RegisterPageState extends State<RegisterPage> {
                       width: double.infinity,
                       height: 60,
                       child: ElevatedButton(
-                        onPressed: _isLoading ? null : () => _nextStep(appState),
+                        onPressed: _isLoading
+                            ? null
+                            : () => _nextStep(appState),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF2563EB),
                           shape: RoundedRectangleBorder(
@@ -306,18 +356,29 @@ class _RegisterPageState extends State<RegisterPage> {
                                 height: 24,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 3,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
                               )
                             : Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    _step < 4 ? appState.translate('continueBtn') : appState.translate('createAccount'),
-                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                                    _step < 4
+                                        ? appState.translate('continueBtn')
+                                        : appState.translate('createAccount'),
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                    ),
                                   ),
                                   const SizedBox(width: 8),
-                                  Icon(_step < 4 ? Icons.arrow_forward_rounded : Icons.how_to_reg_rounded),
+                                  Icon(
+                                    _step < 4
+                                        ? Icons.arrow_forward_rounded
+                                        : Icons.how_to_reg_rounded,
+                                  ),
                                 ],
                               ),
                       ),
@@ -328,7 +389,10 @@ class _RegisterPageState extends State<RegisterPage> {
                       children: [
                         Text(
                           appState.translate('alreadyHaveAccount'),
-                          style: const TextStyle(color: Color(0xFF64748B), fontSize: 15),
+                          style: const TextStyle(
+                            color: Color(0xFF64748B),
+                            fontSize: 15,
+                          ),
                         ),
                         const SizedBox(width: 8),
                         GestureDetector(
@@ -363,13 +427,21 @@ class _RegisterPageState extends State<RegisterPage> {
       children: [
         Text(
           appState.translate('regPersonalInfo'),
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF0F172A),
+          ),
         ),
         const SizedBox(height: 24),
         // Name
         Text(
           appState.translate('regFullName'),
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF475569),
+          ),
         ),
         const SizedBox(height: 6),
         Container(
@@ -387,8 +459,15 @@ class _RegisterPageState extends State<RegisterPage> {
               Expanded(
                 child: TextField(
                   controller: _nameController,
-                  decoration: const InputDecoration(hintText: 'Ahmad bin Abdullah', border: InputBorder.none),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                  decoration: const InputDecoration(
+                    hintText: 'Ahmad bin Abdullah',
+                    border: InputBorder.none,
+                  ),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
+                  ),
                 ),
               ),
             ],
@@ -398,7 +477,11 @@ class _RegisterPageState extends State<RegisterPage> {
         // IC
         Text(
           appState.translate('icNumberLabel'),
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF475569),
+          ),
         ),
         const SizedBox(height: 6),
         Container(
@@ -417,8 +500,15 @@ class _RegisterPageState extends State<RegisterPage> {
                 child: TextField(
                   controller: _icController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(hintText: '570814-01-5432', border: InputBorder.none),
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                  decoration: const InputDecoration(
+                    hintText: '570814-01-5432',
+                    border: InputBorder.none,
+                  ),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
+                  ),
                   onChanged: _handleIcChange,
                 ),
               ),
@@ -429,7 +519,11 @@ class _RegisterPageState extends State<RegisterPage> {
         // Phone
         Text(
           appState.translate('regPhoneNumber'),
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF475569),
+          ),
         ),
         const SizedBox(height: 6),
         Container(
@@ -448,8 +542,15 @@ class _RegisterPageState extends State<RegisterPage> {
                 child: TextField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(hintText: '+60 12-345 6789', border: InputBorder.none),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                  decoration: const InputDecoration(
+                    hintText: '+60 12-345 6789',
+                    border: InputBorder.none,
+                  ),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
+                  ),
                 ),
               ),
             ],
@@ -466,17 +567,29 @@ class _RegisterPageState extends State<RegisterPage> {
       children: [
         Text(
           appState.translate('regLangSetup'),
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF0F172A),
+          ),
         ),
         const SizedBox(height: 20),
         // UI Lang
         Row(
           children: [
-            const Icon(Icons.phone_android_rounded, color: Color(0xFF2563EB), size: 18),
+            const Icon(
+              Icons.phone_android_rounded,
+              color: Color(0xFF2563EB),
+              size: 18,
+            ),
             const SizedBox(width: 8),
             Text(
               appState.translate('regAppLang'),
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+              ),
             ),
           ],
         ),
@@ -502,18 +615,25 @@ class _RegisterPageState extends State<RegisterPage> {
             return InkWell(
               onTap: () {
                 setState(() => _selectedUiLang = lang.id);
-                appState.setCurrentLanguage(lang.id); // Dynamic update in wizard
+                appState.setCurrentLanguage(
+                  lang.id,
+                ); // Dynamic update in wizard
               },
               child: Container(
                 decoration: BoxDecoration(
                   color: isSel ? const Color(0xFF2563EB) : Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: isSel ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
+                    color: isSel
+                        ? const Color(0xFF2563EB)
+                        : const Color(0xFFE2E8F0),
                     width: 2,
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
                     Text(lang.flag, style: const TextStyle(fontSize: 22)),
@@ -528,7 +648,9 @@ class _RegisterPageState extends State<RegisterPage> {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w900,
-                              color: isSel ? Colors.white : const Color(0xFF1E293B),
+                              color: isSel
+                                  ? Colors.white
+                                  : const Color(0xFF1E293B),
                               height: 1.1,
                             ),
                           ),
@@ -537,13 +659,20 @@ class _RegisterPageState extends State<RegisterPage> {
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: isSel ? const Color(0xFFBFDBFE) : const Color(0xFF94A3B8),
+                              color: isSel
+                                  ? const Color(0xFFBFDBFE)
+                                  : const Color(0xFF94A3B8),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    if (isSel) const Icon(Icons.check_circle_rounded, color: Colors.white, size: 16),
+                    if (isSel)
+                      const Icon(
+                        Icons.check_circle_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
                   ],
                 ),
               ),
@@ -558,7 +687,11 @@ class _RegisterPageState extends State<RegisterPage> {
             const SizedBox(width: 8),
             Text(
               appState.translate('voiceLangLabel'),
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+              ),
             ),
           ],
         ),
@@ -591,14 +724,23 @@ class _RegisterPageState extends State<RegisterPage> {
                   color: isSel ? const Color(0xFF10B981) : Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: isSel ? const Color(0xFF10B981) : const Color(0xFFE2E8F0),
+                    color: isSel
+                        ? const Color(0xFF10B981)
+                        : const Color(0xFFE2E8F0),
                     width: 2,
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
-                    Icon(vl.icon, color: isSel ? Colors.white : const Color(0xFF94A3B8), size: 18),
+                    Icon(
+                      vl.icon,
+                      color: isSel ? Colors.white : const Color(0xFF94A3B8),
+                      size: 18,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
@@ -610,7 +752,9 @@ class _RegisterPageState extends State<RegisterPage> {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w900,
-                              color: isSel ? Colors.white : const Color(0xFF1E293B),
+                              color: isSel
+                                  ? Colors.white
+                                  : const Color(0xFF1E293B),
                               height: 1.1,
                             ),
                           ),
@@ -619,7 +763,9 @@ class _RegisterPageState extends State<RegisterPage> {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: isSel ? const Color(0xFFD1FAE5) : const Color(0xFF94A3B8),
+                              color: isSel
+                                  ? const Color(0xFFD1FAE5)
+                                  : const Color(0xFF94A3B8),
                             ),
                           ),
                         ],
@@ -641,12 +787,16 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
           child: Row(
             children: [
-              const AITag(label: 'Dialect AI'),
+              const AITag(label: 'Locale-aware ASR'),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   appState.translate('regLangTip'),
-                  style: const TextStyle(color: Color(0xFF1D4ED8), fontSize: 13, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: Color(0xFF1D4ED8),
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -666,7 +816,11 @@ class _RegisterPageState extends State<RegisterPage> {
       children: [
         Text(
           appState.translate('regSetPassword'),
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF0F172A),
+          ),
         ),
         const SizedBox(height: 16),
         // Tip banner
@@ -692,7 +846,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     height: 1.4,
                   ),
                 ),
-              )
+              ),
             ],
           ),
         ),
@@ -700,7 +854,11 @@ class _RegisterPageState extends State<RegisterPage> {
         // Password Input
         Text(
           appState.translate('regNewPassword'),
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF475569),
+          ),
         ),
         const SizedBox(height: 6),
         Container(
@@ -723,17 +881,23 @@ class _RegisterPageState extends State<RegisterPage> {
                     hintText: appState.translate('regMinCharsPlaceholder'),
                     border: InputBorder.none,
                   ),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
+                  ),
                   onChanged: (text) => setState(() {}),
                 ),
               ),
               IconButton(
                 icon: Icon(
-                  _showPassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                  _showPassword
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
                   color: const Color(0xFF94A3B8),
                 ),
                 onPressed: () => setState(() => _showPassword = !_showPassword),
-              )
+              ),
             ],
           ),
         ),
@@ -750,7 +914,11 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   alignment: Alignment.centerLeft,
                   child: FractionallySizedBox(
-                    widthFactor: strength == 'Weak' ? 0.33 : strength == 'Fair' ? 0.66 : 1.0,
+                    widthFactor: strength == 'Weak'
+                        ? 0.33
+                        : strength == 'Fair'
+                        ? 0.66
+                        : 1.0,
                     child: Container(
                       decoration: BoxDecoration(
                         color: strColor,
@@ -762,17 +930,31 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
               const SizedBox(width: 8),
               Text(
-                appState.translate(strength == 'Weak' ? 'passWeak' : strength == 'Fair' ? 'passFair' : 'passStrong'),
-                style: TextStyle(color: strColor, fontWeight: FontWeight.bold, fontSize: 13),
+                appState.translate(
+                  strength == 'Weak'
+                      ? 'passWeak'
+                      : strength == 'Fair'
+                      ? 'passFair'
+                      : 'passStrong',
+                ),
+                style: TextStyle(
+                  color: strColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
               ),
             ],
-          )
+          ),
         ],
         const SizedBox(height: 20),
         // Confirm Password
         Text(
           appState.translate('regConfirmPassword'),
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF475569),
+          ),
         ),
         const SizedBox(height: 6),
         Container(
@@ -781,7 +963,9 @@ class _RegisterPageState extends State<RegisterPage> {
             color: const Color(0xFFEFF6FF),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: _confirmController.text.isNotEmpty && _confirmController.text != _passwordController.text
+              color:
+                  _confirmController.text.isNotEmpty &&
+                      _confirmController.text != _passwordController.text
                   ? Colors.redAccent
                   : const Color(0xFFDBEAFE),
               width: 2,
@@ -800,16 +984,24 @@ class _RegisterPageState extends State<RegisterPage> {
                     hintText: appState.translate('regReenterPassword'),
                     border: InputBorder.none,
                   ),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
+                  ),
                   onChanged: (text) => setState(() {}),
                 ),
               ),
               if (_confirmController.text.isNotEmpty)
                 Icon(
-                  _confirmController.text == _passwordController.text ? Icons.check_circle_rounded : Icons.cancel_rounded,
-                  color: _confirmController.text == _passwordController.text ? Colors.green : Colors.redAccent,
+                  _confirmController.text == _passwordController.text
+                      ? Icons.check_circle_rounded
+                      : Icons.cancel_rounded,
+                  color: _confirmController.text == _passwordController.text
+                      ? Colors.green
+                      : Colors.redAccent,
                   size: 20,
-                )
+                ),
             ],
           ),
         ),
@@ -828,16 +1020,31 @@ class _RegisterPageState extends State<RegisterPage> {
             children: [
               Text(
                 appState.translate('regAccountSummary'),
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF475569),
+                ),
               ),
               const SizedBox(height: 12),
-              _buildSummaryItem(Icons.person_rounded, _nameController.text.isEmpty ? '—' : _nameController.text),
-              _buildSummaryItem(Icons.badge_rounded, _icController.text.isEmpty ? '—' : _icController.text),
+              _buildSummaryItem(
+                Icons.person_rounded,
+                _nameController.text.isEmpty ? '—' : _nameController.text,
+              ),
+              _buildSummaryItem(
+                Icons.badge_rounded,
+                _icController.text.isEmpty ? '—' : _icController.text,
+              ),
               _buildSummaryItem(
                 Icons.phone_android_rounded,
-                AppConstants.APP_LANGS.firstWhere((l) => l.id == _selectedUiLang).label,
+                AppConstants.APP_LANGS
+                    .firstWhere((l) => l.id == _selectedUiLang)
+                    .label,
               ),
-              _buildSummaryItem(Icons.mic_rounded, _selectedVoiceLang.isEmpty ? '—' : _selectedVoiceLang),
+              _buildSummaryItem(
+                Icons.mic_rounded,
+                _selectedVoiceLang.isEmpty ? '—' : _selectedVoiceLang,
+              ),
             ],
           ),
         ),
@@ -855,9 +1062,13 @@ class _RegisterPageState extends State<RegisterPage> {
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(fontSize: 14, color: Color(0xFF475569), fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF475569),
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          )
+          ),
         ],
       ),
     );
@@ -880,12 +1091,20 @@ class _RegisterPageState extends State<RegisterPage> {
       children: [
         Text(
           appState.translate('emergencyContact'),
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF0F172A),
+          ),
         ),
         const SizedBox(height: 8),
         Text(
           appState.translate('regEcWho'),
-          style: const TextStyle(fontSize: 15, color: Color(0xFF64748B), height: 1.4),
+          style: const TextStyle(
+            fontSize: 15,
+            color: Color(0xFF64748B),
+            height: 1.4,
+          ),
         ),
         const SizedBox(height: 16),
         // Emergency info box
@@ -911,7 +1130,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     height: 1.4,
                   ),
                 ),
-              )
+              ),
             ],
           ),
         ),
@@ -919,7 +1138,11 @@ class _RegisterPageState extends State<RegisterPage> {
         // Name
         Text(
           appState.translate('regContactFullName'),
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF475569),
+          ),
         ),
         const SizedBox(height: 6),
         Container(
@@ -937,8 +1160,15 @@ class _RegisterPageState extends State<RegisterPage> {
               Expanded(
                 child: TextField(
                   controller: _ecNameController,
-                  decoration: const InputDecoration(hintText: 'e.g. Siti Aminah', border: InputBorder.none),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                  decoration: const InputDecoration(
+                    hintText: 'e.g. Siti Aminah',
+                    border: InputBorder.none,
+                  ),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
+                  ),
                   onChanged: (text) => setState(() {}),
                 ),
               ),
@@ -949,7 +1179,11 @@ class _RegisterPageState extends State<RegisterPage> {
         // Phone
         Text(
           appState.translate('regContactPhone'),
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF475569),
+          ),
         ),
         const SizedBox(height: 6),
         Container(
@@ -968,8 +1202,15 @@ class _RegisterPageState extends State<RegisterPage> {
                 child: TextField(
                   controller: _ecPhoneController,
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(hintText: '+60 12-345 6789', border: InputBorder.none),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                  decoration: const InputDecoration(
+                    hintText: '+60 12-345 6789',
+                    border: InputBorder.none,
+                  ),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
+                  ),
                   onChanged: (text) => setState(() {}),
                 ),
               ),
@@ -980,7 +1221,11 @@ class _RegisterPageState extends State<RegisterPage> {
         // Relationship
         Text(
           appState.translate('regRelationship'),
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF475569),
+          ),
         ),
         const SizedBox(height: 8),
         GridView.builder(
@@ -1003,7 +1248,9 @@ class _RegisterPageState extends State<RegisterPage> {
                   color: isSel ? const Color(0xFF2563EB) : Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: isSel ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
+                    color: isSel
+                        ? const Color(0xFF2563EB)
+                        : const Color(0xFFE2E8F0),
                     width: 2,
                   ),
                 ),
@@ -1042,7 +1289,10 @@ class _RegisterPageState extends State<RegisterPage> {
                     color: const Color(0xFFFEE2E2),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(Icons.person_rounded, color: Color(0xFFEF4444)),
+                  child: const Icon(
+                    Icons.person_rounded,
+                    color: Color(0xFFEF4444),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1051,18 +1301,26 @@ class _RegisterPageState extends State<RegisterPage> {
                     children: [
                       Text(
                         _ecNameController.text.trim(),
-                        style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF1E293B), fontSize: 16),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF1E293B),
+                          fontSize: 16,
+                        ),
                       ),
                       Text(
                         '${_ecPhoneController.text.trim()} · ${appState.translate(relationships.firstWhere((r) => r['val'] == _selectedRelationship)['key']!)}',
-                        style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ],
             ),
-          )
+          ),
         ],
       ],
     );
