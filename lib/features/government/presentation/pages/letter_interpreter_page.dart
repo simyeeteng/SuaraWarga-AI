@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -38,6 +39,36 @@ class _LetterInterpreterPageState extends State<LetterInterpreterPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Could not open ${source == ImageSource.camera ? "camera" : "gallery"}: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Opens file picker allowing PDF and image document selection (.pdf, .png, .jpg, .jpeg)
+  Future<void> _pickPdfOrImageFile(AppState appState) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'],
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.isNotEmpty && mounted) {
+        final platformFile = result.files.first;
+        final String? filePath = platformFile.path;
+        if (filePath != null && filePath.isNotEmpty) {
+          await appState.processDocument(filePath);
+        } else if (platformFile.bytes != null) {
+          await appState.processDocument('uploaded_${platformFile.name}');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open document picker: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -451,7 +482,7 @@ class _LetterInterpreterPageState extends State<LetterInterpreterPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: InkWell(
-                      onTap: () => _pickImage(appState, ImageSource.gallery),
+                      onTap: () => _pickPdfOrImageFile(appState),
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 20),
