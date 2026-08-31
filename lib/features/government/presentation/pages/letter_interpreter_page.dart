@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../../../app/routes.dart';
+import '../../../../core/services/web_file_picker.dart';
 import '../../../../core/services/app_state.dart';
 import '../../../../core/services/tts_service.dart';
 import '../../../../shared/widgets/custom_header.dart';
@@ -51,12 +52,9 @@ class _LetterInterpreterPageState extends State<LetterInterpreterPage> {
   Future<void> _pickPdfOrImageFile(AppState appState) async {
     try {
       if (kIsWeb) {
-        final XFile? picked = await _imagePicker.pickImage(
-          source: ImageSource.gallery,
-        );
-        if (picked != null && mounted) {
-          final docName = picked.name.isNotEmpty ? picked.name : picked.path;
-          await appState.processDocument(docName);
+        final webFileName = await selectDocumentFile();
+        if (webFileName != null && webFileName.isNotEmpty && mounted) {
+          await appState.processDocument(webFileName);
         }
         return;
       }
