@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/services/app_state.dart';
+import '../core/services/transit_service.dart';
 import 'routes.dart';
 import 'theme.dart';
 
@@ -62,9 +63,21 @@ class SuaraWargaApp extends StatelessWidget {
         AppRoutes.rulesAdmin: (_) => const RulesAdminPage(),
         AppRoutes.smartMobility: (_) => const SmartMobilityPage(),
         AppRoutes.tropicalRoute: (_) => const TropicalRoutePage(),
-        AppRoutes.transitGuide: (_) => const PublicTransportPage(),
         AppRoutes.walkability: (_) => const WalkabilityPage(),
         AppRoutes.listening: (_) => const ListeningPage(),
+      },
+      // transitGuide supports an optional BusItinerary argument
+      onGenerateRoute: (settings) {
+        if (settings.name == AppRoutes.transitGuide) {
+          final itinerary = settings.arguments is BusItinerary
+              ? settings.arguments as BusItinerary
+              : null;
+          return MaterialPageRoute(
+            builder: (_) => PublicTransportPage(itinerary: itinerary),
+            settings: settings,
+          );
+        }
+        return null;
       },
     );
   }

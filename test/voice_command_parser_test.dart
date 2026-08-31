@@ -36,6 +36,28 @@ void main() {
       });
     }
 
+    test('Hokkien STT mis-transcription (why beh khi -> wa beh khi)', () {
+      final command = parser.parse(
+        transcript: 'Why beh khi KL Sentral, chhoe siang liang e lo.',
+        voiceLanguage: 'Hokkien',
+      );
+
+      expect(command.target, VoiceCommandTarget.tropicalRoute);
+      expect(command.destination, 'KL Sentral');
+      expect(command.routePreference, VoiceRoutePreference.coolest);
+    });
+
+    test('Hokkien STT phonetic variation (why buy key -> wa beh khi)', () {
+      final command = parser.parse(
+        transcript: 'Why buy key Hospital Sultanah, chhoe siang liang e lo.',
+        voiceLanguage: 'Hokkien',
+      );
+
+      expect(command.target, VoiceCommandTarget.tropicalRoute);
+      expect(command.destination, 'Hospital Sultanah');
+      expect(command.routePreference, VoiceRoutePreference.coolest);
+    });
+
     test('preserves Hospital in destination names', () {
       final command = parser.parse(
         transcript: 'Take me to Hospital Kuala Lumpur by the coolest route.',

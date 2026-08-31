@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/models/voice_command.dart';
 import '../../../../core/services/app_state.dart';
 import '../../../../core/services/route_announcement_builder.dart';
@@ -10,6 +12,7 @@ import '../../../../core/services/routing_service.dart';
 import '../../../../core/services/tts_service.dart';
 import '../../../../core/services/weather_service.dart';
 import '../../../../core/services/transit_service.dart';
+import '../../../../app/routes.dart';
 import '../../../../shared/widgets/custom_header.dart';
 import '../../../../shared/widgets/ai_tag.dart';
 import '../widgets/route_card.dart';
@@ -171,6 +174,52 @@ class _TropicalRoutePageState extends State<TropicalRoutePage> {
     if (!mounted) return;
 
     _selectRequestedVoiceRoute(appState);
+    final routes = appState.routes;
+    if (routes.isNotEmpty) {
+      final idx = appState.selectedRouteIndex >= 0 &&
+              appState.selectedRouteIndex < routes.length
+          ? appState.selectedRouteIndex
+          : routes.length - 1;
+      if (routes[idx].duration.inMinutes >= 10) {
+        // Walking takes 10+ minutes — direct user straight to Bus Guide
+        final busItinerary = appState.busItinerary;
+        if (mounted) {
+          // Show a brief snackbar so user understands why they're being redirected
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.directions_bus_rounded,
+                      color: Colors.white, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Walk is ${routes[idx].duration.inMinutes} min — showing Bus Guide',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: const Color(0xFF2563EB),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+          await Future.delayed(const Duration(milliseconds: 600));
+          if (mounted) {
+            await Navigator.pushNamed(
+              context,
+              AppRoutes.transitGuide,
+              arguments: busItinerary,
+            );
+          }
+        }
+        return;
+      }
+    }
+
     await _maybeAutoSpeakRoute(appState);
   }
 
@@ -450,6 +499,44 @@ class _TropicalRoutePageState extends State<TropicalRoutePage> {
         ],
       ),
     );
+  }
+
+  Future<void> _openGoogleMapsNavigation(
+    RouteOption route,
+    AppState appState,
+  ) async {
+    final destination = _destController.text.trim();
+    final urlString =
+        'https://www.google.com/maps/dir/?api=1&origin=$_startLat,$_startLng&destination=$_endLat,$_endLng&travelmode=walking';
+    final Uri uri = Uri.parse(urlString);
+
+    unawaited(
+      _ttsService.speak(
+        'Starting turn-by-turn navigation to $destination. Opening Google Maps now.',
+        langCode: appState.voiceLanguage,
+        speed: appState.voiceSpeed,
+      ),
+    );
+
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      debugPrint('Could not launch Google Maps: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Could not open Google Maps. Destination: $destination',
+            ),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+      }
+    }
   }
 
   void _showLocationPicker(
@@ -983,6 +1070,47 @@ class _TropicalRoutePageState extends State<TropicalRoutePage> {
                                       );
                                     },
                                   ),
+                                  if (currentRouteIndex == index) ...[
+                                    const SizedBox(height: 8),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: ElevatedButton.icon(
+                                        onPressed: () =>
+                                            _openGoogleMapsNavigation(
+                                              opt,
+                                              appState,
+                                            ),
+                                        icon: const Icon(
+                                          Icons.navigation_rounded,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
+                                        label: Text(
+                                          'Start Google Maps Navigation (${opt.duration.inMinutes} min)',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: color,
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 14,
+                                          ),
+                                          elevation: 3,
+                                          shadowColor: color.withValues(
+                                            alpha: 0.4,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                   if (isDuplicate) ...[
                                     const SizedBox(height: 4),
                                     Padding(
@@ -1736,31 +1864,34 @@ class _TropicalRoutePageState extends State<TropicalRoutePage> {
 
     final bool tooHot = weather.temp >= 34;
     final bool tooHumid = weather.humidity >= 80;
-    final bool longWalk = selectedRoute.duration.inMinutes > 15;
+    final bool longWalk = selectedRoute.duration.inMinutes >= 10;
     final bool poorShade = (selectedRoute.shadePercentage ?? 0.0) < 0.3;
 
-    final bool recommendBus = (tooHot || tooHumid) && (longWalk || poorShade);
+    final bool recommendBus = longWalk || ((tooHot || tooHumid) && poorShade);
 
     String reasonText;
     if (recommendBus) {
-      reasonText =
-          'Conditions today are ${tooHot ? "very hot (${weather.temp.round()}°C)" : ""}${tooHot && tooHumid ? " and " : ""}${tooHumid ? "very humid (${weather.humidity.round()}%)" : ""}. ';
       if (longWalk) {
+        reasonText =
+            'The walking duration is ${selectedRoute.duration.inMinutes} min (over the 10-minute walking limit). ';
         reasonText +=
-            'The walk is ${selectedRoute.duration.inMinutes} min which is tiring in this heat. ';
-      }
-      if (poorShade) {
+            'Taking bus ${transitRoute.busLine} is directly recommended to save time and stay comfortable.';
+      } else {
+        reasonText =
+            'Conditions today are ${tooHot ? "very hot (${weather.temp.round()}°C)" : ""}${tooHot && tooHumid ? " and " : ""}${tooHumid ? "very humid (${weather.humidity.round()}%)" : ""}. ';
+        if (poorShade) {
+          reasonText +=
+              'Shade coverage along this route is low (${((selectedRoute.shadePercentage ?? 0) * 100).round()}%). ';
+        }
         reasonText +=
-            'Shade coverage along this route is low (${((selectedRoute.shadePercentage ?? 0) * 100).round()}%). ';
+            'Taking bus ${transitRoute.busLine} is recommended for comfort.';
       }
-      reasonText +=
-          'Taking bus ${transitRoute.busLine} is recommended for comfort.';
     } else {
       reasonText =
           'Walking is fine today. Temperature is ${weather.temp.round()}°C with ${weather.humidity.round()}% humidity — within comfortable range. ';
       if (!longWalk) {
         reasonText +=
-            'The walk is only ${selectedRoute.duration.inMinutes} min. ';
+            'The walk is under 10 minutes (${selectedRoute.duration.inMinutes} min). ';
       }
       if (!poorShade) {
         reasonText +=

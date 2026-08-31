@@ -349,8 +349,7 @@ class RoutingService {
     required double currentHumidity,
     required SunPosition sunPos,
   }) async {
-    // If the coordinates match the Johor Bahru Hospital route, return high-fidelity mocks directly
-    // to guarantee an instant, detailed visual walkthrough for testing
+    // If the coordinates match the unit test fixture route, return mock test fixture directly
     final isJBMockRoute =
         (startLat - 1.4576).abs() < 0.01 &&
         (startLng - 103.7618).abs() < 0.01 &&
@@ -363,9 +362,9 @@ class RoutingService {
     }
 
     try {
-      // Query OSRM walking routing (with alternatives enabled)
+      // Query OSRM walking routing (with alternatives enabled over HTTPS)
       final String url =
-          'http://router.project-osrm.org/route/v1/foot/$startLng,$startLat;$endLng,$endLat?overview=full&geometries=geojson&alternatives=true';
+          'https://router.project-osrm.org/route/v1/foot/$startLng,$startLat;$endLng,$endLat?overview=full&geometries=geojson&alternatives=true';
       final response = await _dio.get(url);
 
       if (response.statusCode != 200 || response.data == null) {
@@ -390,7 +389,11 @@ class RoutingService {
         final geometry = route['geometry'] as Map<String, dynamic>;
         final List<dynamic> coords = geometry['coordinates'] ?? [];
         final double distance = (route['distance'] as num).toDouble();
-        final double durationSec = (route['duration'] as num).toDouble();
+        final double rawDurationSec = (route['duration'] as num).toDouble();
+        final double durationSec = math.max(
+          rawDurationSec,
+          distance > 0 ? (distance / 1.25) : rawDurationSec,
+        );
 
         // Convert coordinates list to segments
         List<RouteSegment> segments = [];
@@ -512,7 +515,11 @@ class RoutingService {
     }
   }
 
-  /// Classifies alternative routes into the 4 types required
+  /// Classifies alternative routes into the 4 types required by Section 4.3 of Technical Architecture Document:
+  /// - Fastest: arg min(duration) -> Shortest available walking time
+  /// - Coolest: arg max(shade ratio) -> Highest proportion of evaluated shaded distance
+  /// - Covered: arg max(covered ratio) -> Highest shelter from direct sun / rain
+  /// - Balanced: arg max(comfort score) -> Best weighted trade-off between thermal comfort, shelter and added time
   List<RouteOption> _classifyRouteOptions(
     List<RouteOption> options,
     double temp,
@@ -529,13 +536,13 @@ class RoutingService {
       );
     }
 
-    // Sort by travel time to find fastest
+    // 1. Fastest: arg min(duration)
     List<RouteOption> sortedByTime = List.from(options)
       ..sort((a, b) => a.duration.compareTo(b.duration));
     final fastest = sortedByTime.first;
     final usedIds = <String>{fastest.id};
 
-    // Sort by shade percentage
+    // 2. Coolest: arg max(shade ratio S)
     List<RouteOption> sortedByShade = List.from(options)
       ..sort(
         (a, b) => (b.shadePercentage ?? 0).compareTo(a.shadePercentage ?? 0),
@@ -543,13 +550,13 @@ class RoutingService {
     final coolest = firstUnused(sortedByShade, usedIds);
     usedIds.add(coolest.id);
 
-    // Sort by covered percentage
+    // 3. Covered: arg max(covered ratio C)
     List<RouteOption> sortedByCovered = List.from(options)
       ..sort((a, b) => b.coveredPercentage.compareTo(a.coveredPercentage));
     final covered = firstUnused(sortedByCovered, usedIds);
     usedIds.add(covered.id);
 
-    // Sort by comfort score
+    // 4. Balanced: arg max(comfort score Score)
     List<RouteOption> sortedByComfort = List.from(options)
       ..sort((a, b) => b.comfortScore.compareTo(a.comfortScore));
     final balanced = firstUnused(sortedByComfort, usedIds);
@@ -563,9 +570,7 @@ class RoutingService {
         shadePercentage: fastest.shadePercentage,
         coveredPercentage: fastest.coveredPercentage,
         comfortScore: fastest.comfortScore,
-        description: fastest.id == coolest.id
-            ? 'Shortest time. Fastest is also the Coolest route today.'
-            : 'Shortest time. Minimal shade exposure.',
+        description: 'Shortest available walking time.',
         segments: fastest.segments,
       ),
       RouteOption(
@@ -576,9 +581,7 @@ class RoutingService {
         shadePercentage: coolest.shadePercentage,
         coveredPercentage: coolest.coveredPercentage,
         comfortScore: coolest.comfortScore,
-        description: coolest.id == fastest.id
-            ? 'Maximized shade (${((coolest.shadePercentage ?? 0) * 100).round()}%). Fastest is also the Coolest route.'
-            : 'Maximized shade (${((coolest.shadePercentage ?? 0) * 100).round()}%). Adds some travel time for comfort.',
+        description: 'Highest proportion of evaluated shaded distance.',
         segments: coolest.segments,
       ),
       RouteOption(
@@ -589,8 +592,7 @@ class RoutingService {
         shadePercentage: covered.shadePercentage,
         coveredPercentage: covered.coveredPercentage,
         comfortScore: covered.comfortScore,
-        description:
-            'Maximized covered walkways (${(covered.coveredPercentage * 100).round()}% coverage from rain/sun).',
+        description: 'Highest shelter from direct sun / rain.',
         segments: covered.segments,
       ),
       RouteOption(
@@ -601,7 +603,7 @@ class RoutingService {
         shadePercentage: balanced.shadePercentage,
         coveredPercentage: balanced.coveredPercentage,
         comfortScore: balanced.comfortScore,
-        description: 'Optimal trade-off across time, shade, and comfort.',
+        description: 'Best weighted trade-off between thermal comfort, shelter and added time.',
         segments: balanced.segments,
       ),
     ];

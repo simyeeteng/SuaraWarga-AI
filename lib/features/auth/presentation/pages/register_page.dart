@@ -66,7 +66,7 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  void _nextStep(AppState appState) {
+  Future<void> _nextStep(AppState appState) async {
     setState(() => _errorText = '');
 
     if (_step == 1) {
@@ -122,27 +122,31 @@ class _RegisterPageState extends State<RegisterPage> {
         return;
       }
 
-      // Finish Registration
+      // Finish Registration with Supabase Auth Backend
       setState(() => _isLoading = true);
-      Future.delayed(const Duration(milliseconds: 1600), () {
+      try {
+        await appState.registerWithSupabase(
+          name: _nameController.text.trim(),
+          ic: _icController.text.replaceAll(RegExp(r'\D'), ''),
+          phone: _phoneController.text.trim(),
+          password: _passwordController.text,
+          uiLang: _selectedUiLang,
+          voiceLang: _selectedVoiceLang,
+          emergencyName: _ecNameController.text.trim(),
+          emergencyPhone: _ecPhoneController.text.trim(),
+          emergencyRelationship: _selectedRelationship,
+        );
         if (!mounted) return;
         setState(() => _isLoading = false);
-        appState.login(
-          UserProfile(
-            name: _nameController.text.trim(),
-            ic: _icController.text.replaceAll(RegExp(r'\D'), ''),
-            phone: _phoneController.text.trim(),
-            uiLang: _selectedUiLang,
-            voiceLang: _selectedVoiceLang,
-            emergencyContact: EmergencyContact(
-              name: _ecNameController.text.trim(),
-              phone: _ecPhoneController.text.trim(),
-              relationship: _selectedRelationship,
-            ),
-          ),
-        );
         Navigator.pushReplacementNamed(context, AppRoutes.home);
-      });
+      } catch (e) {
+        if (!mounted) return;
+        final cleanMsg = e.toString().replaceAll('Exception: ', '');
+        setState(() {
+          _isLoading = false;
+          _errorText = cleanMsg;
+        });
+      }
       return;
     }
 

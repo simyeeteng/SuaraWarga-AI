@@ -74,9 +74,24 @@ class VoiceCommandParser {
   }
 
   static String _normalizeForMatching(String transcript) {
-    return transcript
-        .trim()
-        .toLowerCase()
+    var text = transcript.trim().toLowerCase();
+
+    // Map common Web/Device Speech-to-Text mis-transcriptions for Hokkien spoken phrases:
+    // e.g., "why beh khi", "why buy key", "why back key" -> "wa beh khi"
+    text = text.replaceAll(
+      RegExp(r'\bwhy\s+(?:beh|buy|back|bae|bay)\b'),
+      'wa beh',
+    );
+    text = text.replaceAll(
+      RegExp(r'\b(?:buy|back|bae|bay)\s+(?:key|kee|gee)\b'),
+      'beh khi',
+    );
+    text = text.replaceAll(
+      RegExp(r'^why\s+(?=khi|key|kee|chhoe|siang|beh)'),
+      'wa ',
+    );
+
+    return text
         .replaceAll(RegExp(r'[,，.。?？!！;；:：]+'), ' ')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
@@ -179,7 +194,7 @@ class VoiceCommandParser {
       RegExp(r'(?:带我去|帶我去|我要去|我想去)\s*(.+?)(?=，|,|。|\.|？|\?|找|走|路线|路線|$)'),
       RegExp(r'去\s*(.+?)\s*(?:怎么走|怎麼走)'),
       RegExp(
-        r'\bwa\s+beh\s+khi\s+(.+?)(?=,|，|\.|。|\bchhoe\b|\bsiang\s+liang\b|$)',
+        r'\b(?:wa|why)\s+(?:beh|buy|back|bae|bay|want\s+to)?\s*(?:khi|key|kee|go\s+to)?\s+(.+?)(?=,|，|\.|。|\bchhoe\b|\bsiang\s+liang\b|$)',
         caseSensitive: false,
       ),
       RegExp(
@@ -246,7 +261,7 @@ class VoiceCommandParser {
     RegExp(r'去.+(怎么走|怎麼走)'),
     RegExp(r'(路线|路線).*(怎么走|怎麼走|带我|帶我|我要|我想|找)'),
     RegExp(r'-க்கு\s+.*(நடைபாதை|பாதை)'),
-    RegExp(r'\bwa\s+beh\s+khi\b'),
+    RegExp(r'\b(wa|why)\s+(?:beh|buy|back|want)?\s*(khi|key|kee)\b', caseSensitive: false),
     RegExp(r'\bngo\s+seung\s+heui\b'),
   ];
 

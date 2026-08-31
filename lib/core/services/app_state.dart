@@ -10,6 +10,7 @@ import 'llm_service.dart';
 import 'routing_service.dart';
 import 'weather_service.dart';
 import 'transit_service.dart';
+import 'supabase_service.dart';
 
 class EmergencyContact {
   final String name;
@@ -166,6 +167,8 @@ class AppState extends ChangeNotifier {
 
   UserProfile get activeUser => _user ?? _defaultUser;
 
+
+
   void login(UserProfile profile) {
     _user = profile;
     _currentLanguage = profile.uiLang;
@@ -175,7 +178,50 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Authenticates user with Supabase Auth backend
+  Future<UserProfile> loginWithSupabase({
+    required String ic,
+    required String password,
+  }) async {
+    final profile = await SupabaseService().loginUser(
+      ic: ic,
+      password: password,
+      currentUiLang: _currentLanguage,
+      currentVoiceLang: _voiceLanguage,
+    );
+    login(profile);
+    return profile;
+  }
+
+  /// Registers user with Supabase Auth backend
+  Future<UserProfile> registerWithSupabase({
+    required String name,
+    required String ic,
+    required String phone,
+    required String password,
+    required String uiLang,
+    required String voiceLang,
+    required String emergencyName,
+    required String emergencyPhone,
+    required String emergencyRelationship,
+  }) async {
+    final profile = await SupabaseService().registerUser(
+      name: name,
+      ic: ic,
+      phone: phone,
+      password: password,
+      uiLang: uiLang,
+      voiceLang: voiceLang,
+      emergencyName: emergencyName,
+      emergencyPhone: emergencyPhone,
+      emergencyRelationship: emergencyRelationship,
+    );
+    login(profile);
+    return profile;
+  }
+
   void logout() {
+    SupabaseService().signOut();
     _user = null;
     _currentLanguage = 'en';
     _voiceLanguage = 'English';
@@ -241,7 +287,7 @@ class AppState extends ChangeNotifier {
   }
 
   // 2. Smart Form
-  int _formStep = 3;
+  int _formStep = 1;
   int get formStep => _formStep;
   void nextFormStep() {
     if (_formStep < 7) {
@@ -251,7 +297,7 @@ class AppState extends ChangeNotifier {
   }
 
   void resetFormStep() {
-    _formStep = 3;
+    _formStep = 1;
     notifyListeners();
   }
 
@@ -276,6 +322,7 @@ class AppState extends ChangeNotifier {
   // --- NEW DYNAMIC DOCUMENT CHECKER & INTERPRETER PIPELINE STATE ---
   final OcrService _ocrService = OcrService();
   final LlmService _llmService = LlmService();
+  LlmService get llmService => _llmService;
 
   Map<String, dynamic> _documentRules = {};
   Map<String, dynamic> _governmentDirectory = {};
@@ -358,6 +405,15 @@ class AppState extends ChangeNotifier {
           'verification_contacts',
           json.encode(_verificationContacts),
         );
+      }
+
+      // 6. Restore active Supabase Auth user session
+      final savedProfile = SupabaseService().getCurrentUserProfile();
+      if (savedProfile != null) {
+        _user = savedProfile;
+        _currentLanguage = savedProfile.uiLang;
+        _voiceLanguage = savedProfile.voiceLang;
+        _currentScreen = 'home';
       }
 
       notifyListeners();

@@ -11,6 +11,7 @@ import '../../../../core/models/voice_command.dart';
 import '../../../../core/services/app_state.dart';
 import '../../../../core/services/voice_command_parser.dart';
 import '../../../../core/services/voice_locale_resolver.dart';
+import '../../../../core/services/hokkien_asr_service.dart';
 
 class _VoiceTheme {
   final Color accent;
@@ -230,7 +231,9 @@ class _ListeningPageState extends State<ListeningPage>
               _hasFinalizedSpeechSession) {
             return;
           }
-          final words = result.recognizedWords.trim();
+          final rawWords = result.recognizedWords.trim();
+          final words = HokkienAsrService().normalizeHokkienTranscript(rawWords);
+
           if (words.isNotEmpty) {
             setState(() {
               _phase = 'transcribing';
@@ -243,7 +246,7 @@ class _ListeningPageState extends State<ListeningPage>
             );
           }
           if (result.finalResult) {
-            _finishListening(appState, words);
+            unawaited(_finishListening(appState, words));
           }
         },
       );
@@ -394,7 +397,7 @@ class _ListeningPageState extends State<ListeningPage>
   void _finishOrShowEmptyState(AppState appState) {
     if (_isFinishing || _hasFinalizedSpeechSession) return;
     if (_transcript.trim().isNotEmpty) {
-      _finishListening(appState, _transcript);
+      unawaited(_finishListening(appState, _transcript));
       return;
     }
 
@@ -408,7 +411,7 @@ class _ListeningPageState extends State<ListeningPage>
     });
   }
 
-  void _finishListening(AppState appState, String transcript) {
+  Future<void> _finishListening(AppState appState, String transcript) async {
     final cleanTranscript = transcript.trim();
     if (_isFinishing || _hasFinalizedSpeechSession || cleanTranscript.isEmpty) {
       return;
@@ -419,10 +422,26 @@ class _ListeningPageState extends State<ListeningPage>
     _listenTimeoutTimer?.cancel();
     unawaited(_speech.stop());
 
-    final command = const VoiceCommandParser().parse(
-      transcript: cleanTranscript,
+    final dialectResult = await appState.llmService.processDialectSpeech(
+      rawTranscript: cleanTranscript,
       voiceLanguage: appState.voiceLanguage,
     );
+
+    final effectiveTranscript = dialectResult.normalizedTranscript;
+
+    var command = const VoiceCommandParser().parse(
+      transcript: effectiveTranscript,
+      voiceLanguage: appState.voiceLanguage,
+    );
+
+    if (command.target == VoiceCommandTarget.unmatched &&
+        effectiveTranscript != cleanTranscript) {
+      command = const VoiceCommandParser().parse(
+        transcript: cleanTranscript,
+        voiceLanguage: appState.voiceLanguage,
+      );
+    }
+
     final intent = AppConstants.intentForCommand(command);
 
     if (intent.targetScreen == 'home') {
@@ -446,7 +465,9 @@ class _ListeningPageState extends State<ListeningPage>
     if (!mounted) return;
     setState(() {
       _phase = 'done';
-      _transcript = cleanTranscript;
+      _transcript = dialectResult.englishTranslation.isNotEmpty
+          ? '${dialectResult.englishTranslation} ("$cleanTranscript")'
+          : cleanTranscript;
       _resolvedIntent = intent;
     });
 

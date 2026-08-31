@@ -34,7 +34,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void _handleLogin(AppState appState) {
+  Future<void> _handleLogin(AppState appState) async {
     final icRaw = _icController.text.trim();
     final password = _passwordController.text.trim();
 
@@ -45,7 +45,7 @@ class _LoginPageState extends State<LoginPage> {
 
     final icDigits = icRaw.replaceAll(RegExp(r'\D'), '');
     if (icDigits.length < 12) {
-      setState(() => _errorText = 'Please enter a valid IC number.');
+      setState(() => _errorText = 'Please enter a valid 12-digit IC number.');
       return;
     }
 
@@ -54,23 +54,22 @@ class _LoginPageState extends State<LoginPage> {
       _isLoading = true;
     });
 
-    Future.delayed(const Duration(milliseconds: 1400), () {
+    try {
+      await appState.loginWithSupabase(
+        ic: icDigits,
+        password: password,
+      );
       if (!mounted) return;
       setState(() => _isLoading = false);
-      appState.login(UserProfile(
-        name: 'Ahmad bin Abdullah',
-        ic: icDigits,
-        phone: '+60 12-345 6789',
-        uiLang: appState.currentLanguage,
-        voiceLang: appState.voiceLanguage == 'English' ? 'Hokkien' : appState.voiceLanguage,
-        emergencyContact: const EmergencyContact(
-          name: 'Siti Aminah',
-          phone: '+60 12-345 6789',
-          relationship: 'Daughter',
-        ),
-      ));
       Navigator.pushReplacementNamed(context, AppRoutes.home);
-    });
+    } catch (e) {
+      if (!mounted) return;
+      final cleanMsg = e.toString().replaceAll('Exception: ', '');
+      setState(() {
+        _isLoading = false;
+        _errorText = cleanMsg;
+      });
+    }
   }
 
   @override
