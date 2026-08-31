@@ -1,4 +1,5 @@
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -49,6 +50,17 @@ class _LetterInterpreterPageState extends State<LetterInterpreterPage> {
   /// Opens file picker allowing PDF and image document selection (.pdf, .png, .jpg, .jpeg)
   Future<void> _pickPdfOrImageFile(AppState appState) async {
     try {
+      if (kIsWeb) {
+        final XFile? picked = await _imagePicker.pickImage(
+          source: ImageSource.gallery,
+        );
+        if (picked != null && mounted) {
+          final docName = picked.name.isNotEmpty ? picked.name : picked.path;
+          await appState.processDocument(docName);
+        }
+        return;
+      }
+
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'],
@@ -65,7 +77,21 @@ class _LetterInterpreterPageState extends State<LetterInterpreterPage> {
         }
       }
     } catch (e) {
+      debugPrint('FilePicker note ($e). Using gallery fallback.');
       if (mounted) {
+        try {
+          final XFile? picked = await _imagePicker.pickImage(
+            source: ImageSource.gallery,
+          );
+          if (picked != null && mounted) {
+            final docName = picked.name.isNotEmpty ? picked.name : picked.path;
+            await appState.processDocument(docName);
+            return;
+          }
+        } catch (fallbackErr) {
+          debugPrint('Gallery fallback error: $fallbackErr');
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Could not open document picker: $e'),
