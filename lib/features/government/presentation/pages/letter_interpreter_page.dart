@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../../../app/routes.dart';
-import '../../../../core/services/web_file_picker.dart';
+import '../../../../core/services/pdf_picker.dart';
 import '../../../../core/services/app_state.dart';
 import '../../../../core/services/tts_service.dart';
 import '../../../../shared/widgets/custom_header.dart';
@@ -50,15 +50,21 @@ class _LetterInterpreterPageState extends State<LetterInterpreterPage> {
 
   /// Opens file picker allowing PDF and image document selection (.pdf, .png, .jpg, .jpeg)
   Future<void> _pickPdfOrImageFile(AppState appState) async {
-    try {
-      if (kIsWeb) {
-        final webFileName = await selectDocumentFile();
+    // 1. Web HTML document picker (supports PDF & images on Web Chrome)
+    if (kIsWeb) {
+      try {
+        final webFileName = await selectPdfOrDocument();
         if (webFileName != null && webFileName.isNotEmpty && mounted) {
           await appState.processDocument(webFileName);
         }
         return;
+      } catch (webErr) {
+        debugPrint('Web PDF picker note: $webErr');
       }
+    }
 
+    // 2. Native FilePicker for desktop / mobile
+    try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'],
@@ -70,29 +76,30 @@ class _LetterInterpreterPageState extends State<LetterInterpreterPage> {
         final String? filePath = platformFile.path;
         if (filePath != null && filePath.isNotEmpty) {
           await appState.processDocument(filePath);
-        } else if (platformFile.bytes != null) {
+        } else {
           await appState.processDocument('uploaded_${platformFile.name}');
         }
+        return;
       }
     } catch (e) {
-      debugPrint('FilePicker note ($e). Using gallery fallback.');
-      if (mounted) {
-        try {
-          final XFile? picked = await _imagePicker.pickImage(
-            source: ImageSource.gallery,
-          );
-          if (picked != null && mounted) {
-            final docName = picked.name.isNotEmpty ? picked.name : picked.path;
-            await appState.processDocument(docName);
-            return;
-          }
-        } catch (fallbackErr) {
-          debugPrint('Gallery fallback error: $fallbackErr');
-        }
+      debugPrint('FilePicker note: $e. Falling back to image picker.');
+    }
 
+    // Fail-safe fallback to gallery selector
+    try {
+      final XFile? picked = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 90,
+      );
+      if (picked != null && mounted) {
+        final String docName = picked.name.isNotEmpty ? picked.name : picked.path;
+        await appState.processDocument(docName);
+      }
+    } catch (err) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Could not open document picker: $e'),
+            content: Text('Could not open document picker: $err'),
             backgroundColor: Colors.red,
           ),
         );

@@ -380,8 +380,48 @@ class LlmService {
       case 'electricity_tnb':
         return 'This is a TNB electricity bill. Please pay the stated amount $deadlineText to avoid service disconnection. $feeText';
       default:
-        return 'This appears to be an official government document, but we could not match it to a known document type. Please read it carefully and contact the relevant agency using their official phone number or website to confirm what it means.';
+        // Smart AI Summarization engine: distill key sentences into a 2-line plain summary
+        return _summarizeArbitraryText(ocrText, feeText, deadlineText);
     }
+  }
+
+  String _summarizeArbitraryText(String rawText, String feeText, String deadlineText) {
+    final text = rawText.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (text.isEmpty) {
+      return 'This document appears to be empty. Please ensure the document is clear and readable.';
+    }
+
+    final upper = text.toUpperCase();
+    String topic = 'Government / Official Letter';
+
+    if (upper.contains('TAX') || upper.contains('HASIL') || upper.contains('LHDN')) {
+      topic = 'Income Tax Notice';
+    } else if (upper.contains('ROADTAX') || upper.contains('JPJ') || upper.contains('VEHICLE')) {
+      topic = 'Road Tax / JPJ Vehicle Notice';
+    } else if (upper.contains('MYKAD') || upper.contains('JPN') || upper.contains('PENDAFTARAN')) {
+      topic = 'National Registration / MyKad Notice';
+    } else if (upper.contains('SAMAN') || upper.contains('PDRM') || upper.contains('SUMMONS')) {
+      topic = 'Traffic / Police Summons';
+    } else if (upper.contains('BILL') || upper.contains('UTILITY') || upper.contains('TNB') || upper.contains('SYABAS')) {
+      topic = 'Utility Bill';
+    } else if (upper.contains('HOSPITAL') || upper.contains('KLINIK') || upper.contains('APPOINTMENT')) {
+      topic = 'Hospital / Medical Appointment';
+    }
+
+    // Extract non-header, meaningful sentences
+    final sentences = text.split(RegExp(r'[.!?\n]'))
+        .map((s) => s.trim())
+        .where((s) => s.length > 15 && !s.toLowerCase().contains('jabatan') && !s.toLowerCase().contains('tarikh'))
+        .toList();
+
+    String mainSentence = '';
+    if (sentences.isNotEmpty) {
+      mainSentence = '${sentences.take(2).join('. ')}.';
+    } else {
+      mainSentence = text.length > 150 ? '${text.substring(0, 150)}...' : text;
+    }
+
+    return 'AI Summary ($topic):\n$mainSentence\n\nAction Required: Please review the details and respond $deadlineText. $feeText';
   }
 
   String _resolveRequiredAction(String docType, String agency) {
